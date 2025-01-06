@@ -32,7 +32,7 @@ int setup_buff(char *buff, char *user_str, int len){
 
      char currentChar;
 
-    for(int i = 0; i < len; i++){
+    for(int i = 0; i < len && *(user_str + i); i++){
         currentChar = *(user_str + i);
 
         if (isspace(currentChar)) {
@@ -53,7 +53,6 @@ int setup_buff(char *buff, char *user_str, int len){
     }
 
     *(buff + j) = '\0';
-
     return j; //for now just so the code compiles. 
 }
 
@@ -79,20 +78,19 @@ int count_words(char *buff, int len, int str_len){
 
 int main(int argc, char *argv[]){
 
-    char *buff = (char *) malloc(sizeof(char) * BUFFER_SZ); //placeholder for the internal buffer
-
-    if(buff == NULL){
-        printf("Buffer memory allocation failed.\n");
-        exit(2);
-    }
+    char *buff; //placeholder for the internal buffer
 
     char *input_string;     //holds the string provided by the user on cmd line
     char opt;               //used to capture user option from cmd line
     int  rc;                //used for return codes
     int  user_str_len;      //length of user supplied string
 
-    //TODO:  #1. WHY IS THIS SAFE, aka what if arv[1] does not exist?
-    //      PLACE A COMMENT BLOCK HERE EXPLAINING
+    /*
+        This is safe because argc is checked to see if it is less than two first.
+        This ensures that there are at least two arguments present first before checking argv[1].
+        If argc is less than two, argv[1] would be out of bounds, and accessing it would cause undefined behavior.
+        But because the check occurs first, it is safe.
+    */
     if ((argc < 2) || (*argv[1] != '-')){
         usage(argv[0]);
         exit(1);
@@ -108,8 +106,11 @@ int main(int argc, char *argv[]){
 
     //WE NOW WILL HANDLE THE REQUIRED OPERATIONS
 
-    //TODO:  #2 Document the purpose of the if statement below
-    //      PLACE A COMMENT BLOCK HERE EXPLAINING
+    /*
+        All other flags beyond the -h flag require an argument(s). It is necessary to check for
+        them before continuing the program.
+    */
+
     if (argc < 3){
         usage(argv[0]);
         exit(1);
@@ -117,10 +118,12 @@ int main(int argc, char *argv[]){
 
     input_string = argv[2]; //capture the user input string
 
-    //TODO:  #3 Allocate space for the buffer using malloc and
-    //          handle error if malloc fails by exiting with a 
-    //          return code of 99
-    // CODE GOES HERE FOR #3
+    buff = (char *) malloc(sizeof(char) * BUFFER_SZ);
+
+    if(buff == NULL){
+        printf("Buffer memory allocation failed.\n");
+        return 99;
+    }
 
 
     user_str_len = setup_buff(buff, input_string, BUFFER_SZ);     //see todos
