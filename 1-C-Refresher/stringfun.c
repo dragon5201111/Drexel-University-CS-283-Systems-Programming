@@ -15,7 +15,8 @@ int  setup_buff(char *, char *, int);
 int  count_words(char *, int, int);
 //add additional prototypes here
 int reverse_buff(char **, int);
-void print_reversed_buff(char *, int, int);
+int print_reversed_words(char *, int, int);
+int print_words(char *, int, int);
 
 int setup_buff(char *buff, char *user_str, int len){
     // Buffer or user_str is empty.
@@ -29,8 +30,7 @@ int setup_buff(char *buff, char *user_str, int len){
         return -1;
     }
 
-    int was_space = 0;
-    int j = 0;
+    int was_space = 0, j = 0;
 
     char current_char;
 
@@ -72,7 +72,6 @@ void usage(char *exename){
 
 int count_words(char *buff, int len, int str_len){
     // Empty input buffer
-
     if(buff == NULL){
         printf("Buffer cannot be empty.\n");
         return -2;
@@ -83,8 +82,7 @@ int count_words(char *buff, int len, int str_len){
         return -1;
     }
 
-    int word_count = 0;
-    int in_word = 0;
+    int word_count = 0, in_word = 0;
 
     char current_char;
 
@@ -125,7 +123,6 @@ int reverse_buff(char ** buff, int len){
     for (int i = 0, j = len - 1; j >= 0; i++, j--) {
         *(new_buffer + i) = *(*buff + j);
     }
-    
 
     // Free old buffer
     free(*buff);
@@ -134,12 +131,57 @@ int reverse_buff(char ** buff, int len){
     return 0;
 }
 
-void print_reversed_buff(char * buff, int len, int str_len){
+int print_reversed_words(char * buff, int len, int str_len){
+    if(buff == NULL) return -2;
+    if(len < str_len || str_len < 0) return -1;
+
     printf("Reversed String: ");
     for(int i = (len - str_len); i < len; i++){
         putchar(*(buff + i));
     }
     putchar('\n');
+
+    return 0;
+}
+
+int print_words(char * buff, int len, int str_len){
+    if(buff == NULL) return -2;
+    if(len < str_len || str_len < 0) return -1;
+
+    printf("Word Print\n");
+    printf("----------\n");
+
+    int line_count = 0, word_len = 0, in_word = 0;
+
+    char current_char;
+    
+    for (int i = 0; i < str_len; i++)
+    {
+        current_char = *(buff + i);
+
+        if(!isspace(current_char)){
+            if(!in_word){
+                line_count++;
+                in_word = 1;
+                word_len = 1;
+                printf("%d. ", line_count);
+            }else{
+                word_len++;
+            }
+            putchar(current_char);
+        }else{
+            if (in_word) {
+                printf(" (%d)\n", word_len);
+                in_word = 0;
+            }
+        }
+    }
+
+    if (in_word) {
+        printf(" (%d)\n", word_len);
+    }
+
+    return 0;
 }
 
 
@@ -157,7 +199,7 @@ int main(int argc, char *argv[]){
         This is safe because argc is checked to see if it is less than two first.
         This ensures that there are at least two arguments present first before checking argv[1].
         If argc is less than two, argv[1] would be out of bounds, and accessing it would cause undefined behavior.
-        But because the check occurs first, it is safe.
+        But because the  pricheck occurs first, it is safe.
     */
     if ((argc < 2) || (*argv[1] != '-')){
         usage(argv[0]);
@@ -217,13 +259,24 @@ int main(int argc, char *argv[]){
         
         case 'r':
             rc = reverse_buff(&buff, BUFFER_SZ);
-             if (rc < 0){
+            if (rc < 0){
                 printf("Error reversing words, rc = %d", rc);
                 exit(2);
             }
-            print_reversed_buff(buff, BUFFER_SZ, user_str_len);
-            break;
+            rc = print_reversed_words(buff, BUFFER_SZ, user_str_len);
 
+            if (rc < 0){
+                printf("Error printing reversed words, rc = %d", rc);
+                exit(3);
+            }
+            break;
+        case 'w':
+            rc = print_words(buff, BUFFER_SZ, user_str_len);
+            if (rc < 0){
+                printf("Error printing words, rc = %d", rc);
+                exit(3);
+            }
+            break;
         //TODO:  #5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
         default:
@@ -241,4 +294,6 @@ int main(int argc, char *argv[]){
 //          is a good practice, after all we know from main() that 
 //          the buff variable will have exactly 50 bytes?
 //  
-//          PLACE YOUR ANSWER HERE
+//          Bounds checking. C doesn't know the extent of a pointer. For all C knows, the buffer goes on infinitely.
+//          By passing the buffer size, eliminates guessing and helps to ensure that memory outside bounds is not accessed,
+//          which can lead to undefined behavior and buffer overflows.
