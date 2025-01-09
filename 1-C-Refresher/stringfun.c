@@ -248,26 +248,26 @@ int replace_word(char *buff, int len, char *target, char *replace_word) {
             }
         }
 
+        // Match found
         if (is_match) {
             // Replace target
             if (replace_word_len <= target_len) {
-                // Replace in place if the replacement word is shorter or equal in length
+                // Replace if the replacement word is <= in length
                 for (int j = 0; j < replace_word_len; j++) {
                     *(buff + i + j) = *(replace_word + j);
                 }
-                // If the replacement word is shorter
+
                 if (replace_word_len < target_len) {
                     for (int j = i + replace_word_len; j < len; j++) {
                         *(buff + j) = *(buff + j + target_len - replace_word_len);
                     }
                 }
             } else {
-                // If the replacement word is longer, shift the buffer
-                // Make room for longer word
+                // Shift the buffer
                 for (int j = len - 1; j >= i + target_len; j--) {
                     *(buff + j + replace_word_len - target_len) = *(buff + j);
                 }
-                // Copy the replacement word
+                // Replace target
                 for (int j = 0; j < replace_word_len; j++) {
                     *(buff + i + j) = *(replace_word + j);
                 }
