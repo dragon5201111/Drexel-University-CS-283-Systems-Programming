@@ -4,7 +4,7 @@
 
 
 #define BUFFER_SZ 50
-#define isspace(c) (c == ' ' || c == '\t') // Macro function
+#define isspace(c) (c == ' ' || c == '\t') // Macro function to help simplify checking for "spaces"
 
 //prototypes
 void usage(char *);
@@ -17,6 +17,9 @@ int  count_words(char *, int, int);
 int reverse_buff(char **, int);
 int print_reversed_words(char *, int, int);
 int print_words(char *, int, int);
+int replace_word(char *, int, char *, char*);
+int str_len(char *);
+int get_str_len_buff(char*, int len);
 
 int setup_buff(char *buff, char *user_str, int len){
     // Buffer or user_str is empty.
@@ -51,6 +54,7 @@ int setup_buff(char *buff, char *user_str, int len){
     }
 
     if(j < BUFFER_SZ){
+        // Fill rest of buffer
         memset(buff + j, '.', BUFFER_SZ - j);
     }
 
@@ -96,6 +100,7 @@ int count_words(char *buff, int len, int str_len){
                 in_word = 1;
             }
         }else{
+            // A space character is encountered
             in_word = 0;
         }
     }
@@ -105,6 +110,7 @@ int count_words(char *buff, int len, int str_len){
 
 //ADD OTHER HELPER FUNCTIONS HERE FOR OTHER REQUIRED PROGRAM OPTIONS
 int reverse_buff(char ** buff, int len){
+    // Double pointer is necessary as this function will populate & reverse a new buffer, and replace "buff" with the new buffer
     // Empty input buffer
     if(*buff == NULL || buff == NULL){
         printf("Buffer cannot be empty.\n");
@@ -118,7 +124,6 @@ int reverse_buff(char ** buff, int len){
         printf("Error allocating for new buffer.\n");
         return -2;
     }
-
 
     for (int i = 0, j = len - 1; j >= 0; i++, j--) {
         *(new_buffer + i) = *(*buff + j);
@@ -148,6 +153,7 @@ int print_words(char * buff, int len, int str_len){
     if(buff == NULL) return -2;
     if(len < str_len || str_len < 0) return -1;
 
+    // Heading
     printf("Word Print\n");
     printf("----------\n");
 
@@ -166,8 +172,10 @@ int print_words(char * buff, int len, int str_len){
                 word_len = 1;
                 printf("%d. ", line_count);
             }else{
+                // We are in a word currently
                 word_len++;
             }
+            // In any case, print character to stdout
             putchar(current_char);
         }else{
             if (in_word) {
@@ -183,6 +191,96 @@ int print_words(char * buff, int len, int str_len){
 
     return 0;
 }
+
+// Get string lenth
+int str_len(char* str){
+    int c = 0;
+    while(*str++){
+        c++;
+    }
+    return c;
+}
+
+// Get string length from padded buffer
+int get_str_len_buff(char * buff, int len){
+    if(buff == NULL) return 0;
+
+
+    // Start from end of buffer and stop when . is not encountered
+    for(int i = len - 1; i >= 0; i--){
+        char current_char = *(buff + i);
+
+        if(current_char != '.'){
+            return i + 1;
+        }
+    }
+
+    return 0;
+}
+
+
+// On success return 0
+int replace_word(char *buff, int len, char *target, char *replace_word) {    
+    // Get replacement and target string lengths
+    int replace_word_len = str_len(replace_word);
+    int target_len = str_len(target);
+
+    // Ensure the target string is not empty and the lengths are valid
+    if (target_len == 0 || replace_word_len == 0 || len <= 0) {
+        return -1;
+    }
+
+    if(replace_word_len > len || target_len > len){
+        printf("Replacement and target words should not exceed buffer length.\n");
+        return -1;
+    }
+
+    // Find and replace occurences
+    for (int i = 0; i <= len - target_len; i++) {
+        // Check if the current substring matches the target
+        int match = 1;
+
+        for (int j = 0; j < target_len; j++) {
+            if (*(buff + i + j) != *(target + j)) {
+                match = 0;
+                break;
+            }
+        }
+
+        if (match) {
+            // Replace target
+            if (replace_word_len <= target_len) {
+                // Replace in place if the replacement word is shorter or equal in length
+                for (int j = 0; j < replace_word_len; j++) {
+                    *(buff + i + j) = *(replace_word + j);
+                }
+                // If the replacement word is shorter, pad the remaining space with the next character in the buffer (optional)
+                if (replace_word_len < target_len) {
+                    for (int j = i + replace_word_len; j < len; j++) {
+                        *(buff + j) = *(buff + j + target_len - replace_word_len);
+                    }
+                }
+            } else {
+                // If the replacement word is longer, shift the buffer content
+                // Make room for longer word
+                for (int j = len - 1; j >= i + target_len; j--) {
+                    *(buff + j + replace_word_len - target_len) = *(buff + j);
+                }
+                // Copy the replacement word
+                for (int j = 0; j < replace_word_len; j++) {
+                    *(buff + i + j) = *(replace_word + j);
+                }
+
+
+            }
+
+            i += replace_word_len - 1;  // Skip the replaced word
+        }
+    }
+
+    return 0;
+}
+
 
 
 int main(int argc, char *argv[]){
@@ -219,7 +317,7 @@ int main(int argc, char *argv[]){
 
     //TODO:  #2 Document the purpose of the if statement below
     /*
-        All other flags beyond the -h flag require an argument(s). It is necessary to check for
+        All other flags beyond the -h (i.e., at this point) flag require an argument(s). It is necessary to check for
         them before continuing the program.
     */
     if (argc < 3){
@@ -236,7 +334,7 @@ int main(int argc, char *argv[]){
 
     if(buff == NULL){
         printf("Buffer memory allocation failed.\n");
-        return 99;
+        exit(99);
     }
 
 
@@ -263,6 +361,7 @@ int main(int argc, char *argv[]){
                 printf("Error reversing words, rc = %d", rc);
                 exit(2);
             }
+
             rc = print_reversed_words(buff, BUFFER_SZ, user_str_len);
 
             if (rc < 0){
@@ -276,6 +375,31 @@ int main(int argc, char *argv[]){
                 printf("Error printing words, rc = %d", rc);
                 exit(3);
             }
+            break;
+
+        case 'x':
+            if(argc < 5){
+                printf("Not enough arguments supplied.\n");
+                exit(1);
+            }else{
+                rc = replace_word(buff, BUFFER_SZ, argv[3], argv[4]);
+
+                if(rc < 0){
+                    printf("Unable to replace word.\n");
+                    exit(3);
+                }
+
+                // Get new user_str_len
+                user_str_len = get_str_len_buff(buff, BUFFER_SZ);
+
+                // Print result
+                printf("Modified String: ");
+                for(int i = 0; i < user_str_len; i++){
+                    putchar(*(buff + i));
+                }
+                putchar('\n');
+            }
+
             break;
         //TODO:  #5 Implement the other cases for 'r' and 'w' by extending
         //       the case statement options
@@ -296,4 +420,4 @@ int main(int argc, char *argv[]){
 //  
 //          Bounds checking. C doesn't know the extent of a pointer. For all C knows, the buffer goes on infinitely.
 //          By passing the buffer size, eliminates guessing and helps to ensure that memory outside bounds is not accessed,
-//          which can lead to undefined behavior and buffer overflows.
+//          which can lead to undefined behavior.
