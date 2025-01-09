@@ -275,7 +275,7 @@ int replace_word(char *buff, int len, char *target, char *replace_word) {
 
             }
 
-            i += replace_word_len - 1;  // Skip the replaced word
+            i += replace_word_len - 1;  // Skip the replaced word in buffer
         }
     }
 
