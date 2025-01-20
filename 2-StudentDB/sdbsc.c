@@ -90,7 +90,7 @@ int get_student(int fd, int id, student_t *s){
 int add_student(int fd, int id, char *fname, char *lname, int gpa){
     char student_buf[STUDENT_RECORD_SIZE];
 
-    int offset = id * STUDENT_RECORD_SIZE;
+    off_t offset = id * STUDENT_RECORD_SIZE;
 
     // Offset from beginning of file
     if(lseek(fd, offset, SEEK_SET) == -1){
@@ -104,8 +104,8 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
         return ERR_DB_FILE;
     }
     
-    // Block is unoccupied
     if(memcmp(student_buf, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE) == 0){
+        // Block is free
         // Go back to offset to write to file
         if(lseek(fd, offset, SEEK_SET) == -1){
             printf(M_ERR_DB_READ);
@@ -126,12 +126,12 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
         }
 
     }else{
-        // Student already exists.
+        // Student already exists in db
         printf(M_ERR_DB_ADD_DUP, id);
         return ERR_DB_OP;
     }
 
-    // At this point, student was successfully added
+    // At this point, student was successfully added to db
     printf(M_STD_ADDED, id);
     return NO_ERROR;
 }
