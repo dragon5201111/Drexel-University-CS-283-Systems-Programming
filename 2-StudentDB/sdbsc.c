@@ -88,7 +88,7 @@ int get_student(int fd, int id, student_t *s){
  *            
  */
 int add_student(int fd, int id, char *fname, char *lname, int gpa){
-    char studentBuf[STUDENT_RECORD_SIZE];
+    char student_buf[STUDENT_RECORD_SIZE];
 
     int offset = id * STUDENT_RECORD_SIZE;
 
@@ -99,13 +99,13 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
     }
     
     // Read into buffer to use in memcmp
-    if(read(fd, studentBuf, STUDENT_RECORD_SIZE) == -1){
+    if(read(fd, student_buf, STUDENT_RECORD_SIZE) == -1){
         printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
     
     // Block is unoccupied
-    if(memcmp(studentBuf, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE) == 0){
+    if(memcmp(student_buf, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE) == 0){
         // Go back to offset to write to file
         if(lseek(fd, offset, SEEK_SET) == -1){
             printf(M_ERR_DB_READ);
@@ -113,14 +113,14 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
         }
 
         // Create struct to add to db
-        student_t newEntry;
-        newEntry.gpa = gpa;
-        newEntry.id = id;
-        strcpy(newEntry.fname, fname);
-        strcpy(newEntry.lname, lname);
+        student_t new_student;
+        new_student.gpa = gpa;
+        new_student.id = id;
+        strcpy(new_student.fname, fname);
+        strcpy(new_student.lname, lname);
 
         // Write new student to db
-        if(write(fd, &newEntry, STUDENT_RECORD_SIZE) == -1){
+        if(write(fd, &new_student, STUDENT_RECORD_SIZE) == -1){
             printf(M_ERR_DB_WRITE);
             return ERR_DB_FILE;
         }
