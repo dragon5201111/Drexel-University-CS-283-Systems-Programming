@@ -73,7 +73,6 @@ int processArg(char * arg, char * keyword, char ** result){
     
 }
 
-
 char * createCipherText(char * text, char * key, int textSize, int keySize) {
     if (keySize <= 0 || textSize <= 0) return NULL;
     if (keySize != textSize) return NULL;
