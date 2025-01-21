@@ -59,7 +59,29 @@ int open_db(char *dbFile, bool should_truncate){
  *  console:  Does not produce any console I/O used by other functions
  */
 int get_student(int fd, int id, student_t *s){
-    return NOT_IMPLEMENTED_YET;
+    student_t student_buf = {0};
+
+    off_t offset = id * STUDENT_RECORD_SIZE;
+
+    if(lseek(fd, offset, SEEK_SET) == -1){
+        return ERR_DB_FILE;
+    }
+
+    if(read(fd, &student_buf, STUDENT_RECORD_SIZE) == -1){
+        return ERR_DB_FILE;
+    }
+
+    if(memcmp(&student_buf, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE)== 0){
+        // Student not found
+        return SRCH_NOT_FOUND;
+    }else{
+        s->gpa = student_buf.gpa;
+        s->id = student_buf.id;
+        strcpy(s->fname, student_buf.fname);
+        strcpy(s->lname, student_buf.lname);
+    }
+    
+    return NO_ERROR;
 }
 
 /*
@@ -88,7 +110,7 @@ int get_student(int fd, int id, student_t *s){
  *            
  */
 int add_student(int fd, int id, char *fname, char *lname, int gpa){
-    char student_buf[STUDENT_RECORD_SIZE];
+    student_t student_buf = {0};
 
     off_t offset = id * STUDENT_RECORD_SIZE;
 
@@ -99,12 +121,12 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
     }
     
     // Read into buffer to use in memcmp
-    if(read(fd, student_buf, STUDENT_RECORD_SIZE) == -1){
+    if(read(fd, &student_buf, STUDENT_RECORD_SIZE) == -1){
         printf(M_ERR_DB_READ);
         return ERR_DB_FILE;
     }
-    
-    if(memcmp(student_buf, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE) == 0){
+
+    if(memcmp(&student_buf, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE)== 0){
         // Block is free
         // Go back to offset to write to file
         if(lseek(fd, offset, SEEK_SET) == -1){
@@ -476,7 +498,6 @@ int main(int argc, char *argv[]){
             }
             id = atoi(argv[2]);
             rc = get_student(fd, id, &student);
-
            
             switch (rc){
                 case NO_ERROR:
