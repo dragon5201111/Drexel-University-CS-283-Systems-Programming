@@ -181,8 +181,37 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
  *            
  */
 int del_student(int fd, int id){
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    student_t student_to_del;
+    int res = get_student(fd, id, &student_to_del);
+
+    if(res == SRCH_NOT_FOUND){
+        // Student not found
+        printf(M_STD_NOT_FND_MSG, id);
+        return ERR_DB_OP;
+    }else if(res == ERR_DB_FILE){
+        // Error getting student
+        printf(M_ERR_DB_READ);
+        return ERR_DB_FILE;
+    }else{
+        // Found student to delete
+        
+        off_t offset = id * STUDENT_RECORD_SIZE;
+
+        // Offset from beginning of file
+        if(lseek(fd, offset, SEEK_SET) == -1){
+            printf(M_ERR_DB_READ);
+            return ERR_DB_FILE;
+        }
+        
+        if(write(fd, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE) == -1){
+            printf(M_ERR_DB_WRITE);
+            return ERR_DB_FILE;
+        }
+
+    }
+
+    printf(M_STD_DEL_MSG, id);
+    return NO_ERROR;
 }
 
 /*
@@ -281,7 +310,16 @@ int print_db(int fd){
  *            
  */
 void print_student(student_t *s){
-    printf(M_NOT_IMPL);
+    if(s == NULL || s->id == 0){
+        printf(M_ERR_STD_PRINT);
+        return;
+    }
+
+    float gpa = s->gpa / 100.0;
+
+    printf(STUDENT_PRINT_HDR_STRING, "ID","FIRST NAME", "LAST_NAME", "GPA");
+    printf(STUDENT_PRINT_FMT_STRING, s->id, s->fname, s->lname, gpa);
+
 }
 
 /*
