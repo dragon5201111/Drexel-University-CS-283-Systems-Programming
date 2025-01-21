@@ -181,7 +181,7 @@ int add_student(int fd, int id, char *fname, char *lname, int gpa){
  *            
  */
 int del_student(int fd, int id){
-    student_t student_to_del;
+    student_t student_to_del = {0};
     int res = get_student(fd, id, &student_to_del);
 
     if(res == SRCH_NOT_FOUND){
@@ -239,8 +239,32 @@ int del_student(int fd, int id){
  *            
  */
 int count_db_records(int fd){
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    student_t student_buf = {0};
+
+    int record_count = 0;
+    int res;
+
+    while((res = read(fd, &student_buf, STUDENT_RECORD_SIZE))){
+        if(res == -1){
+            printf(M_ERR_DB_READ);
+            return ERR_DB_FILE;
+        }
+
+       if(memcmp(&student_buf, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE)== 0){
+            continue;
+       }else{
+            // Student exists in database
+            record_count++;
+       }
+    }
+
+    if(record_count == 0){
+        printf(M_DB_EMPTY);
+        return ERR_DB_OP;
+    }
+
+    printf(M_DB_RECORD_CNT, record_count);
+    return record_count;
 }
 
 /*
@@ -277,8 +301,32 @@ int count_db_records(int fd){
  *            
  */
 int print_db(int fd){
-    printf(M_NOT_IMPL);
-    return NOT_IMPLEMENTED_YET;
+    student_t student_buf = {0};
+
+    int res;
+    int record_count = 0;
+
+    while((res = read(fd, &student_buf, STUDENT_RECORD_SIZE))){
+        if(res == -1){
+            printf(M_ERR_DB_READ);
+            return ERR_DB_FILE;
+        }
+
+       if(memcmp(&student_buf, &EMPTY_STUDENT_RECORD, STUDENT_RECORD_SIZE)== 0){
+            continue;
+       }else{
+            // Student exists in database
+            record_count++;
+            if(record_count == 1) printf(STUDENT_PRINT_HDR_STRING, "ID","FIRST NAME", "LAST_NAME", "GPA");
+
+            float gpa = student_buf.gpa / 100.0;
+            printf(STUDENT_PRINT_FMT_STRING, student_buf.id, student_buf.fname, student_buf.lname, gpa);
+       }
+    }
+
+    if(record_count == 0) printf(M_DB_EMPTY);
+
+    return NO_ERROR;
 }
 
 /*
