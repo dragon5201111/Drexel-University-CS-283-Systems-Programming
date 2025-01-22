@@ -5,7 +5,7 @@ Please answer the following questions and submit in your repo for the second ass
 
 1. In this assignment I asked you provide an implementation for the `get_student(...)` function because I think it improves the overall design of the database application.   After you implemented your solution do you agree that externalizing `get_student(...)` into it's own function is a good design strategy?  Briefly describe why or why not.
 
-    > **Answer**:  _start here_
+    > **Answer**: I think it is a good design strategy. For one, this follows the principle of DRY. Namely, this function was used to implement the del_student function - where similiar logic would have been needed in the main function. Lastly, this helps to improve code readability - would you rather read 25 lines of code that fetches from an entry from a database or one line that states get_student(...)?; externalizing get_student(...) not only simplifies the codebase but also makes it more maintainable and easier to extend in the future.
 
 2. Another interesting aspect of the `get_student(...)` function is how its function prototype requires the caller to provide the storage for the `student_t` structure:
 
