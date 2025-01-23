@@ -432,13 +432,8 @@ int compress_db(int fd){
     int res;
 
     for(int i = MIN_STD_ID; i <= MAX_STD_ID; i++){
+        // Keep track of offset
         off_t offset = i * STUDENT_RECORD_SIZE;
-
-        if(lseek(fd, offset, SEEK_SET) == -1){
-            printf(M_ERR_DB_READ);
-            close(tmp_fd);
-            return ERR_DB_FILE;
-        }
 
         res = get_student(fd, i, &student_buf);
 
@@ -449,6 +444,7 @@ int compress_db(int fd){
         
         if(res == NO_ERROR){
             // Student found
+            // Seek to position in temp file
             if(lseek(tmp_fd, offset, SEEK_SET) == -1){
                 printf(M_ERR_DB_READ);
                 close(tmp_fd);
@@ -474,7 +470,7 @@ int compress_db(int fd){
 
     fd = open_db(DB_FILE, false);
 
-    if(fd < 0){
+    if(fd == ERR_DB_FILE){
         printf(M_ERR_DB_OPEN);
         return ERR_DB_FILE;
     }
