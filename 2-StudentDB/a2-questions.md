@@ -39,7 +39,7 @@ Please answer the following questions and submit in your repo for the second ass
     ```
     Can you think of any reason why the above implementation would be a **very bad idea** using the C programming language?  Specifically, address why the above code introduces a subtle bug that could be hard to identify at runtime? 
 
-    > **ANSWER:** _start here_
+    > **ANSWER:** This function returns a pointer to a local variable which goes out of scope as soon as you exit the function which results in undefined behaviour. Not good.
 
 3. Another way the `get_student(...)` function could be implemented is as follows:
 
@@ -72,7 +72,7 @@ Please answer the following questions and submit in your repo for the second ass
     ```
     In this implementation the storage for the student record is allocated on the heap using `malloc()` and passed back to the caller when the function returns. What do you think about this alternative implementation of `get_student(...)`?  Address in your answer why it work work, but also think about any potential problems it could cause.  
     
-    > **ANSWER:** _start here_  
+    > **ANSWER:** I think it is a better approach, and could work but, I think it's inefficient to allocate memory for the structure under the assumption that you will find a student. It would be better to allocate the memory once you have found the student (i.e., this would also reduce unecessary system calls). Also, managing a boolean is adds extra complexity to the function that is not needed. It would be easier to return the structure after populating it inside some conditional statement.On the other hand, this function works because it returns a pointer to a valid memory.
 
 
 4. Lets take a look at how storage is managed for our simple database. Recall that all student records are stored on disk using the layout of the `student_t` structure (which has a size of 64 bytes).  Lets start with a fresh database by deleting the `student.db` file using the command `rm ./student.db`.  Now that we have an empty database lets add a few students and see what is happening under the covers.  Consider the following sequence of commands:
@@ -102,7 +102,7 @@ Please answer the following questions and submit in your repo for the second ass
 
     - Please explain why the file size reported by the `ls` command was 128 bytes after adding student with ID=1, 256 after adding student with ID=3, and 4160 after adding the student with ID=64? 
 
-        > **ANSWER:** _start here_
+        > **ANSWER:** After adding a student with ID=1, it was 128 bytes because the first block in our db is unoccupied (64 bytes) and then follows student ID=1 (another 64 bytes) resulting in a total of 128 bytes. The same can be said for the student ID=3. We have 64 bytes for ID=0, ID=1, ID=2, and then comes ID=3, so a grand total of 256 bytes. The same logic follows for ID=64. 64 bytes * 64 bytes (for 64 spaces) + 64 for the unoccupied space at the beginning of the db. Finally, resulting in 4160 bytes.
 
     -   Why did the total storage used on the disk remain unchanged when we added the student with ID=1, ID=3, and ID=63, but increased from 4K to 8K when we added the student with ID=64? 
 
