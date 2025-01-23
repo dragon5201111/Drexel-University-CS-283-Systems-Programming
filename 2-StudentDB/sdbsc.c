@@ -419,7 +419,67 @@ void print_student(student_t *s){
  *            
  */
 int compress_db(int fd){
-    printf(M_NOT_IMPL);
+    mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP;
+    int flags = O_RDWR | O_CREAT | O_TRUNC;
+    int tmp_fd = open(TMP_DB_FILE, flags, mode);
+    
+    if(tmp_fd == -1){
+        printf(M_ERR_DB_OPEN);
+        return ERR_DB_FILE;
+    }
+
+    student_t student_buf = {0};
+    int res;
+
+    for(int i = MIN_STD_ID; i <= MAX_STD_ID; i++){
+        off_t offset = i * STUDENT_RECORD_SIZE;
+
+        if(lseek(fd, offset, SEEK_SET) == -1){
+            printf(M_ERR_DB_READ);
+            close(tmp_fd);
+            return ERR_DB_FILE;
+        }
+
+        res = get_student(fd, i, &student_buf);
+
+        if(res == ERR_DB_FILE){
+            printf(M_ERR_DB_READ);
+            return ERR_DB_FILE;
+        }
+        
+        if(res == NO_ERROR){
+            // Student found
+            if(lseek(tmp_fd, offset, SEEK_SET) == -1){
+                printf(M_ERR_DB_READ);
+                close(tmp_fd);
+                return ERR_DB_FILE;
+            }
+
+            // Write student at offset
+            if (write(tmp_fd, &student_buf, STUDENT_RECORD_SIZE) == -1) {
+                printf(M_ERR_DB_WRITE);
+                close(tmp_fd);
+                return ERR_DB_FILE;
+            }
+        }
+    }
+   
+    close(tmp_fd);
+    close(fd);
+
+    if(rename(TMP_DB_FILE, DB_FILE) != 0){
+        printf(M_ERR_DB_CREATE);
+        return ERR_DB_FILE;
+    }
+
+    fd = open_db(DB_FILE, false);
+
+    if(fd < 0){
+        printf(M_ERR_DB_OPEN);
+        return ERR_DB_FILE;
+    }
+
+    printf(M_DB_COMPRESSED_OK);
     return fd;
 }
 

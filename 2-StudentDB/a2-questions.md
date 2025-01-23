@@ -119,4 +119,4 @@ Please answer the following questions and submit in your repo for the second ass
         ```
         We see from above adding a student with a very large student ID (ID=99999) increased the file size to 6400000 as shown by `ls` but the raw storage only increased to 12K as reported by `du`.  Can provide some insight into why this happened?
 
-        > **ANSWER:**  du reports the amount of **blocks** used in 4k increments. Since the file size is 6400000, 
+        > **ANSWER:**  12K is reported because it's the number of 4KB blocks actually occupied by data, not the full size of the file.
