@@ -88,6 +88,12 @@ const char * DRAGON_ASCII[] = {
 int main()
 {
     char *cmd_buff = (char *) malloc(SH_CMD_MAX * sizeof(char));
+
+    if(cmd_buff == NULL){
+        printf("Error allocating memory for cmd buffer.\n");
+        exit(ERR_CMD_OR_ARGS_TOO_BIG);
+    }
+
     command_list_t clist;
 
     while (1)
@@ -104,6 +110,8 @@ int main()
         cmd_buff[strcspn(cmd_buff, "\n")] = '\0';
 
         // IMPLEMENT THE REST OF THE REQUIREMENTS
+
+        // Empty command
         if (!cmd_buff[0]) {
             printf(CMD_WARN_NO_CMD); 
             continue;
@@ -117,12 +125,13 @@ int main()
             cmd_buff_p++;
         }
         
-
+        // Max pipe limit reached
         if(pipe_cnt >= CMD_MAX){
             printf(CMD_ERR_PIPE_LIMIT, CMD_MAX);
             continue;
         }
 
+        // Dragon cmd
         if(strcmp(cmd_buff, DRAGON_CMD) == 0){
             int n_lines = sizeof(DRAGON_ASCII) / sizeof(DRAGON_ASCII[0]);
 
@@ -133,10 +142,14 @@ int main()
             continue;
         }
 
+
+        // Exit cmd
         if(strcmp(cmd_buff, EXIT_CMD) == 0){
             free(cmd_buff);
             exit(OK);
         }
+
+        build_cmd_list(cmd_buff, &clist);
 
     }
 

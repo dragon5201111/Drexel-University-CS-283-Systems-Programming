@@ -42,6 +42,7 @@ typedef struct command_list
 
 // prototypes
 int build_cmd_list(char *cmd_line, command_list_t *clist);
+void strip_token(char * dest, char * token, int token_len);
 
 // output constants
 #define CMD_OK_HEADER "PARSED COMMAND LINE - TOTAL COMMANDS %d\n"

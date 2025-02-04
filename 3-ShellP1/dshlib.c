@@ -34,6 +34,52 @@
  */
 int build_cmd_list(char *cmd_line, command_list_t *clist)
 {
-    printf(M_NOT_IMPL);
-    return EXIT_NOT_IMPL;
+    if(!cmd_line || !clist){
+        return ERR_CMD_OR_ARGS_TOO_BIG;
+    }
+
+    char * token;
+    token = strtok(cmd_line, PIPE_STRING);
+
+    while(token != NULL){   
+        int token_len = strlen(token);     
+        char token_cpy[token_len + 1];
+
+        // Remove leading and trailing whitespace
+        strip_token(token_cpy, token, token_len);
+
+
+        token = strtok(NULL, PIPE_STRING);
+    }
+
+
+    return OK;
+}
+
+void strip_token(char * dest, char * token, int token_len){
+    int head_offset = 0;
+    int tail_offset = 0;
+    char * token_p = token;
+        
+    while(isspace(*token_p) && head_offset < token_len){
+        token_p++;
+        head_offset++;
+    }
+
+    token_p = token + token_len - 1;
+    
+    while(token_p >= token && isspace(*token_p)){
+        tail_offset++;
+        token_p--;
+    }
+
+    token_p = (token + head_offset);
+
+    int i = 0;
+
+    for(; token_p <= (token + token_len - tail_offset -1); token_p++, i++){
+        dest[i] = *token_p;
+    }
+
+    dest[i] = '\0';
 }
