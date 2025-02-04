@@ -39,24 +39,52 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
     }
 
     char * token;
+    int cmd_cnt = 0;
+
     token = strtok(cmd_line, PIPE_STRING);
 
-    while(token != NULL){   
-        int token_len = strlen(token);     
+    while(token != NULL){
+
+        int token_len = strlen(token); 
         char token_cpy[token_len + 1];
 
-        // Remove leading and trailing whitespace
-        strip_token(token_cpy, token, token_len);
+        int token_cpy_len = strip_token(token_cpy, token, token_len);
+
+        printf("Full CMD: %s, CMD #: %d, Size: %d\n", token_cpy, cmd_cnt, token_cpy_len);
 
 
+        command_t * current_cmd = &clist->commands[cmd_cnt];
+        
+        char * first_space = strchr(token_cpy, SPACE_CHAR);
+        int has_args = 0;
+
+        if(first_space != NULL) has_args = 1;
+        
+        if(has_args){
+            // Check exe size
+            // Check arg size
+        }else{
+            // Check exe size
+            if(token_cpy_len + 1 > EXE_MAX){
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }
+
+            memcpy(current_cmd->exe, token_cpy, token_cpy_len+1);
+            // FINISH HERE
+        }
+
+        
+        cmd_cnt++;
         token = strtok(NULL, PIPE_STRING);
     }
+
 
 
     return OK;
 }
 
-void strip_token(char * dest, char * token, int token_len){
+// Remove trailing, and leading whitespace. Also ensures tokens have one space between them.
+int strip_token(char * dest, char * token, int token_len){
     int head_offset = 0;
     int tail_offset = 0;
     char * token_p = token;
@@ -76,10 +104,20 @@ void strip_token(char * dest, char * token, int token_len){
     token_p = (token + head_offset);
 
     int i = 0;
+    int prev_was_space = 0;
 
-    for(; token_p <= (token + token_len - tail_offset -1); token_p++, i++){
-        dest[i] = *token_p;
+    for(; token_p <= (token + token_len - tail_offset - 1); token_p++){
+        if(isspace(*token_p)){
+            if (prev_was_space) {
+                continue;
+            }
+            prev_was_space = 1;
+        } else {
+            prev_was_space = 0;
+        }
+        dest[i++] = *token_p;
     }
 
     dest[i] = '\0';
+    return i;
 }
