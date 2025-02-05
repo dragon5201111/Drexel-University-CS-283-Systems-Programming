@@ -147,7 +147,7 @@ int main()
             exit(OK);
         }
 
-        if(build_cmd_list(cmd_buff, &clist)){
+        if(build_cmd_list(cmd_buff, &clist) == OK){
             printf(CMD_OK_HEADER, clist.num);
 
             for (int i = 0; i < clist.num; i++)
@@ -169,4 +169,3 @@ int main()
 
     free(cmd_buff);
 }
-
