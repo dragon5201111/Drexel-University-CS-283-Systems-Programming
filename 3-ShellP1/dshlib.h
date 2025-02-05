@@ -7,6 +7,9 @@
 #define CMD_MAX 8
 // Longest command that can be read from the shell
 #define SH_CMD_MAX EXE_MAX + ARG_MAX
+// Constants for max values
+#define DECIMAL_DIGITS_BOUND(t) (241 * sizeof(t) / 100 + 1)
+#define INT_DIGITS_BOUND (DECIMAL_DIGITS_BOUND(int))
 
 typedef struct command
 {
@@ -42,8 +45,11 @@ typedef struct command_list
 #define NOT_IMPLEMENTED_YET 0
 
 // prototypes
+void print_dragon_cmp(const char**, int);
 int build_cmd_list(char *cmd_line, command_list_t *clist);
 int strip_token(char * dest, char * token, int token_len);
+void print_cmd_list(struct command_list);
+int count_pipes(char *);
 
 // output constants
 #define CMD_OK_HEADER "PARSED COMMAND LINE - TOTAL COMMANDS %d\n"
