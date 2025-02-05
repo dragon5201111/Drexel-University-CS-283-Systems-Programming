@@ -45,11 +45,15 @@ typedef struct command_list
 #define NOT_IMPLEMENTED_YET 0
 
 // prototypes
+// Print compressed dragon ascii
 void print_dragon_cmp(const char**, int);
 int build_cmd_list(char *cmd_line, command_list_t *clist);
+// Strip a token of leading, trailing and multiple whitespace between tokens
 int strip_token(char * dest, char * token, int token_len);
 void print_cmd_list(struct command_list);
 int count_pipes(char *);
+// Compare two strings for equality without regard to trailing and leading spaces
+int strcmp_lt(char *, char *);
 
 // output constants
 #define CMD_OK_HEADER "PARSED COMMAND LINE - TOTAL COMMANDS %d\n"

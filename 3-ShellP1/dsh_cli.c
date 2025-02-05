@@ -126,7 +126,7 @@ int main()
         }
 
         // Dragon cmd
-        if(strcmp(cmd_buff, DRAGON_CMD) == 0){
+        if(strcmp_lt(cmd_buff, DRAGON_CMD) == 0){
             int n_lines = sizeof(DRAGON_ASCII_CMP) / sizeof(DRAGON_ASCII_CMP[0]);
             print_dragon_cmp(DRAGON_ASCII_CMP, n_lines);
             continue;
@@ -134,7 +134,7 @@ int main()
 
 
         // Exit cmd
-        if(strcmp(cmd_buff, EXIT_CMD) == 0){
+        if(strcmp_lt(cmd_buff, EXIT_CMD) == 0){
             free(cmd_buff);
             exit(OK);
         }
@@ -147,6 +147,24 @@ int main()
     }
 
     free(cmd_buff);
+}
+
+int strcmp_lt(char * s_1, char *s_2){
+    int i = 0, j;
+
+    while(isspace(s_1[i])) i++;
+
+    char s_1_cpy[strlen(s_1) - i + 1];
+
+    strcpy(s_1_cpy, (s_1+ i));
+
+    j = strlen(s_1_cpy) - 1;
+
+    while(j >= 0 && isspace(s_1_cpy[j])) j--;
+
+    s_1_cpy[j + 1] = '\0';
+
+    return strcmp(s_1_cpy, s_2);
 }
 
 int count_pipes(char * cmd_buff){
