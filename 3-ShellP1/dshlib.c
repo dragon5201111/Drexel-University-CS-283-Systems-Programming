@@ -45,40 +45,58 @@ int build_cmd_list(char *cmd_line, command_list_t *clist)
 
     while(token != NULL){
 
+        if(cmd_cnt >= CMD_MAX){
+            return ERR_TOO_MANY_COMMANDS;
+        }
+
         int token_len = strlen(token); 
         char token_cpy[token_len + 1];
 
         int token_cpy_len = strip_token(token_cpy, token, token_len);
 
-        printf("Full CMD: %s, CMD #: %d, Size: %d\n", token_cpy, cmd_cnt, token_cpy_len);
-
-
         command_t * current_cmd = &clist->commands[cmd_cnt];
         
         char * first_space = strchr(token_cpy, SPACE_CHAR);
-        int has_args = 0;
-
-        if(first_space != NULL) has_args = 1;
+        int has_args = (first_space != NULL);
         
         if(has_args){
             // Check exe size
             // Check arg size
-        }else{
-            // Check exe size
-            if(token_cpy_len + 1 > EXE_MAX){
+
+            // Null terminate to check exe size
+            char * args = first_space + 1;
+            *first_space = '\0';
+
+            if(strlen(token_cpy) > EXE_MAX){
                 return ERR_CMD_OR_ARGS_TOO_BIG;
             }
 
-            memcpy(current_cmd->exe, token_cpy, token_cpy_len+1);
-            // FINISH HERE
+            strcpy(current_cmd->exe, token_cpy);
+
+            if(strlen(args) > ARG_MAX){
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }
+
+            strcpy(current_cmd->args, args);
+        }else{
+            // No args
+            // Check exe size
+            if(token_cpy_len > EXE_MAX){
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }
+
+            // Only copy exe
+            strcpy(current_cmd->exe, token_cpy);
+
+            //Fill args will empty string
+            memset(current_cmd->args, 0, sizeof(current_cmd->args));
         }
 
-        
         cmd_cnt++;
         token = strtok(NULL, PIPE_STRING);
     }
 
-
+    clist->num = cmd_cnt;
 
     return OK;
 }

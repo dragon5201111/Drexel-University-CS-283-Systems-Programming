@@ -49,6 +49,8 @@ int strip_token(char * dest, char * token, int token_len);
 #define CMD_OK_HEADER "PARSED COMMAND LINE - TOTAL COMMANDS %d\n"
 #define CMD_WARN_NO_CMD "warning: no commands provided\n"
 #define CMD_ERR_PIPE_LIMIT "error: piping limited to %d commands\n"
+#define CMD_EXE_PRINT "<%d> %s "
+#define CMD_ARGS_PRINT "[%s]"
 
 
 #endif

@@ -87,6 +87,7 @@ const char * DRAGON_ASCII[] = {
  */
 int main()
 {
+    int res = 0;
     char *cmd_buff = (char *) malloc(SH_CMD_MAX * sizeof(char));
 
     if(cmd_buff == NULL){
@@ -149,7 +150,23 @@ int main()
             exit(OK);
         }
 
-        build_cmd_list(cmd_buff, &clist);
+        if((res = build_cmd_list(cmd_buff, &clist)) == OK){
+            printf(CMD_OK_HEADER, clist.num);
+
+            for (int i = 0; i < clist.num; i++)
+            {
+                command_t current_cmd = clist.commands[i];
+                
+                printf(CMD_EXE_PRINT, (i+1), current_cmd.exe);
+
+                if(current_cmd.args[0] == '\0'){
+                    continue;
+                }
+
+                printf(CMD_ARGS_PRINT, current_cmd.args);
+            }
+            
+        }
 
     }
 
