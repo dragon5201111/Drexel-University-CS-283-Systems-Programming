@@ -1,4 +1,8 @@
 #include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
+
+
 #define DECIMAL_DIGITS_BOUND(t) (241 * sizeof(t) / 100 + 1)
 #define INT_DIGITS_BOUND (DECIMAL_DIGITS_BOUND(int))
 #define DRAGON_LINES (sizeof(DRAGON_ASCII) / sizeof(DRAGON_ASCII[0]))
@@ -50,7 +54,7 @@ const char * DRAGON_ASCII[] = {
 extern void print_dragon(){
     const char * current_line;
     
-    for (int i = 0; i < DRAGON_LINES; i++) {
+    for (int i = 0; i < (int)DRAGON_LINES; i++) {
         current_line = DRAGON_ASCII[i];
 
         while (*current_line) {

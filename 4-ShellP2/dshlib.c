@@ -61,7 +61,14 @@ int exec_local_cmd_loop()
     }
 
     int rc = 0;
+
     cmd_buff_t cmd;
+    rc = alloc_cmd_buff(&cmd);
+
+    if(rc == ERR_MEMORY){
+        printf("Unable to allocate memory for cmd.\n");
+        return ERR_MEMORY;
+    }
 
     // TODO IMPLEMENT MAIN LOOP
     while(1){
@@ -69,16 +76,24 @@ int exec_local_cmd_loop()
         
         if (fgets(cmd_buff, ARG_MAX, stdin) == NULL){
             printf("\n");
-        break;
+            break;
         }
 
         cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
 
         // TODO IMPLEMENT parsing input to cmd_buff_t *cmd_buff
-
         rc = build_cmd_buff(cmd_buff, &cmd);
 
-        printf("RC: %d\n", rc);
+        if(rc == WARN_NO_CMDS){
+            printf(CMD_WARN_NO_CMD);
+            continue;
+        }else if(rc == OK){
+            printf("Parsed:\n");
+
+            for(int i = 0; i < cmd.argc; i++){
+                printf("%s\n", cmd.argv[i]);
+            }
+        }
     
         // TODO IMPLEMENT if built-in command, execute builtin logic for exit, cd (extra credit: dragon)
         // the cd command should chdir to the provided directory; if no directory is provided, do nothing
@@ -86,60 +101,113 @@ int exec_local_cmd_loop()
 
         // TODO IMPLEMENT if not built-in command, fork/exec as an external command
         // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
+        
     }
 
+    free_cmd_buff(&cmd);
     free(cmd_buff);
     return OK;
 }
 
-int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
-    int cmd_line_len = strlen(cmd_line);
+int alloc_cmd_buff(cmd_buff_t *cmd_buff){
+    cmd_buff->argc = 0;
 
-    char * cmd_line_p = cmd_line;
-    int head_offset = 0;
-    int tail_offset = 0;
-
-    while(isspace(*cmd_line_p)){
-        cmd_line_p++;
-        head_offset++;
+    cmd_buff->argv[0] = (char *)malloc((EXE_MAX + 1) * sizeof(char));
+    if (cmd_buff->argv[0] == NULL) {
+        return ERR_MEMORY;
     }
 
-    // Cmd all spaces or empty
-    if(*cmd_line_p == '\0') return WARN_NO_CMDS;
+    for (int i = 1; i < CMD_ARGV_MAX; i++) {
+        cmd_buff->argv[i] = (char *)malloc((ARG_MAX + 1) * sizeof(char));
+        if (cmd_buff->argv[i] == NULL) {
+            free_cmd_buff(cmd_buff);
+            return ERR_MEMORY;
+        }
+    }
 
-    cmd_line_p = cmd_line + cmd_line_len - 1;
-    
-    while (cmd_line_p >= cmd_line && isspace(*cmd_line_p)) {
-        tail_offset++;
-        cmd_line_p--;
+    cmd_buff->_cmd_buffer = (char *)malloc((SH_CMD_MAX + 1) * sizeof(char));
+    if (cmd_buff->_cmd_buffer == NULL) {
+        free_cmd_buff(cmd_buff);
+        return ERR_MEMORY;
     }
 
     return OK;
 }
 
+int free_cmd_buff(cmd_buff_t *cmd_buff){
+    if(cmd_buff == NULL) return ERR_MEMORY;
 
-int parse_cmd_buff(char ** dest, char *cmd_buff, int cmd_buff_len) {
-    if (cmd_buff_len == 0 || cmd_buff == NULL) {
+    for (int i = 0; i < CMD_ARGV_MAX; i++) {
+        if (cmd_buff->argv[i] != NULL) {
+            free(cmd_buff->argv[i]);
+        }
+    }
+
+    if (cmd_buff->_cmd_buffer != NULL) {
+        free(cmd_buff->_cmd_buffer);
+    }
+    return OK;
+}
+
+int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
+    char * formatted_cmd_line = NULL;
+    int formatted_cmd_line_len = format_cmd_line(&formatted_cmd_line, cmd_line, strlen(cmd_line));
+
+    if(formatted_cmd_line_len == WARN_NO_CMDS){
+        return WARN_NO_CMDS;
+    }else if(formatted_cmd_line_len == ERR_MEMORY){
+        return ERR_MEMORY;
+    }
+
+    cmd_buff->argc = 0;
+    strcpy(cmd_buff->_cmd_buffer, formatted_cmd_line);
+
+    char *arg_start = formatted_cmd_line;
+
+    for (int i = 0; i <= formatted_cmd_line_len; i++) {
+        if (formatted_cmd_line[i] == '\0') {
+            int arg_start_len = strlen(arg_start);
+
+            if(cmd_buff->argc == 0 &&  arg_start_len > EXE_MAX){
+                free(formatted_cmd_line);
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }else if(arg_start_len > ARG_MAX){
+                free(formatted_cmd_line);
+                return ERR_CMD_OR_ARGS_TOO_BIG;
+            }
+            
+            strcpy(cmd_buff->argv[cmd_buff->argc++], arg_start);
+            arg_start = &formatted_cmd_line[i + 1];
+        }
+    }
+    free(formatted_cmd_line);
+    return OK;
+}
+
+int format_cmd_line(char ** dest, char *cmd_line, int cmd_line_len) {
+    if (cmd_line_len == 0 || cmd_line == NULL) {
         return WARN_NO_CMDS;
     }
 
     int head_offset = 0;
     int tail_offset = 0;
-    char *cmd_buff_p = cmd_buff;
+    char *cmd_line_p = cmd_line;
     
-    while (head_offset < cmd_buff_len && isspace(*cmd_buff_p)) {
-        cmd_buff_p++;
+    // Skip leading spaces
+    while (head_offset < cmd_line_len && isspace(*cmd_line_p)) {
+        cmd_line_p++;
         head_offset++;
     }
 
-    cmd_buff_p = cmd_buff + cmd_buff_len - 1;
+    cmd_line_p = &cmd_line[cmd_line_len - 1];
     
-    while (cmd_buff_p >= cmd_buff && isspace(*cmd_buff_p)) {
+    // Skip trailing spaces
+    while (cmd_line_p >= cmd_line && isspace(*cmd_line_p)) {
         tail_offset++;
-        cmd_buff_p--;
+        cmd_line_p--;
     }
 
-    int new_cmd_buff_len = cmd_buff_len - head_offset - tail_offset;
+    int new_cmd_buff_len = cmd_line_len - head_offset - tail_offset;
     if (new_cmd_buff_len <= 0) {
         return WARN_NO_CMDS;
     }
@@ -153,24 +221,25 @@ int parse_cmd_buff(char ** dest, char *cmd_buff, int cmd_buff_len) {
     int inside_quotes = 0;
     int prev_was_space = 0;
 
-    for (cmd_buff_p = cmd_buff + head_offset; cmd_buff_p < cmd_buff + cmd_buff_len - tail_offset; cmd_buff_p++) {
-        if (*cmd_buff_p == QUOTE_CHAR) {
+    for (cmd_line_p = cmd_line + head_offset; cmd_line_p < cmd_line + cmd_line_len - tail_offset; cmd_line_p++) {
+        if (*cmd_line_p == QUOTE_CHAR) {
             inside_quotes = !inside_quotes;
+            continue;
         }
 
-        if (isspace(*cmd_buff_p)) {
+        if (isspace(*cmd_line_p)) {
             if (inside_quotes) {
-                new_cmd_buff[i++] = *cmd_buff_p;
+                new_cmd_buff[i++] = *cmd_line_p;
                 prev_was_space = 0;
             } else {
                 if (prev_was_space) {
                     continue;
                 }
                 prev_was_space = 1;
-                new_cmd_buff[i++] = *cmd_buff_p;
+                new_cmd_buff[i++] = '\0';
             }
         } else {
-            new_cmd_buff[i++] = *cmd_buff_p;
+            new_cmd_buff[i++] = *cmd_line_p;
             prev_was_space = 0;
         }
     }
