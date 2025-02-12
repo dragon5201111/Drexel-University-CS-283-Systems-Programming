@@ -36,6 +36,9 @@ typedef struct command{
 
 #define SH_PROMPT "dsh2> "
 #define EXIT_CMD "exit"
+#define DRAGON_CMD "dragon"
+#define CD_CMD "cd"
+#define RC_CMD "rc"
 
 //Standard Return Codes
 #define OK                       0
@@ -52,6 +55,8 @@ int alloc_cmd_buff(cmd_buff_t *cmd_buff);
 int free_cmd_buff(cmd_buff_t *cmd_buff);
 int clear_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff);
+int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len);
+int format_cmd_line(char ** dest, char *cmd_line, int cmd_line_len);
 
 //built in command stuff
 typedef enum {
@@ -76,5 +81,4 @@ int exec_cmd(cmd_buff_t *cmd);
 #define CMD_OK_HEADER       "PARSED COMMAND LINE - TOTAL COMMANDS %d\n"
 #define CMD_WARN_NO_CMD     "warning: no commands provided\n"
 #define CMD_ERR_PIPE_LIMIT  "error: piping limited to %d commands\n"
-
 #endif
