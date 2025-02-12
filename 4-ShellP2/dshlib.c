@@ -60,7 +60,7 @@ int exec_local_cmd_loop()
         return ERR_MEMORY;
     }
 
-    //int rc = 0;
+    int rc = 0;
     cmd_buff_t cmd;
 
     // TODO IMPLEMENT MAIN LOOP
@@ -75,42 +75,66 @@ int exec_local_cmd_loop()
         cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
 
         // TODO IMPLEMENT parsing input to cmd_buff_t *cmd_buff
-        if(parse_cmd_buff(&cmd_buff, strlen(cmd_buff)) == WARN_NO_CMDS){
-            printf(CMD_WARN_NO_CMD);
-            continue;
-        }
 
-        printf("After parsing-%s\n", cmd_buff);
+        rc = build_cmd_buff(cmd_buff, &cmd);
+
+        printf("RC: %d\n", rc);
+    
         // TODO IMPLEMENT if built-in command, execute builtin logic for exit, cd (extra credit: dragon)
         // the cd command should chdir to the provided directory; if no directory is provided, do nothing
+        
 
         // TODO IMPLEMENT if not built-in command, fork/exec as an external command
         // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
-        
     }
 
     free(cmd_buff);
     return OK;
 }
 
-// CHANGE SO IT DOESN'T OVERWRITE CMD_BUFF
-int parse_cmd_buff(char **cmd_buff, int cmd_buff_len) {
-    if (cmd_buff_len == 0 || *cmd_buff == NULL) {
+int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
+    int cmd_line_len = strlen(cmd_line);
+
+    char * cmd_line_p = cmd_line;
+    int head_offset = 0;
+    int tail_offset = 0;
+
+    while(isspace(*cmd_line_p)){
+        cmd_line_p++;
+        head_offset++;
+    }
+
+    // Cmd all spaces or empty
+    if(*cmd_line_p == '\0') return WARN_NO_CMDS;
+
+    cmd_line_p = cmd_line + cmd_line_len - 1;
+    
+    while (cmd_line_p >= cmd_line && isspace(*cmd_line_p)) {
+        tail_offset++;
+        cmd_line_p--;
+    }
+
+    return OK;
+}
+
+
+int parse_cmd_buff(char ** dest, char *cmd_buff, int cmd_buff_len) {
+    if (cmd_buff_len == 0 || cmd_buff == NULL) {
         return WARN_NO_CMDS;
     }
 
     int head_offset = 0;
     int tail_offset = 0;
-    char *cmd_buff_p = *cmd_buff;
+    char *cmd_buff_p = cmd_buff;
     
     while (head_offset < cmd_buff_len && isspace(*cmd_buff_p)) {
         cmd_buff_p++;
         head_offset++;
     }
 
-    cmd_buff_p = *cmd_buff + cmd_buff_len - 1;
+    cmd_buff_p = cmd_buff + cmd_buff_len - 1;
     
-    while (cmd_buff_p >= *cmd_buff && isspace(*cmd_buff_p)) {
+    while (cmd_buff_p >= cmd_buff && isspace(*cmd_buff_p)) {
         tail_offset++;
         cmd_buff_p--;
     }
@@ -129,11 +153,10 @@ int parse_cmd_buff(char **cmd_buff, int cmd_buff_len) {
     int inside_quotes = 0;
     int prev_was_space = 0;
 
-    for (cmd_buff_p = *cmd_buff + head_offset; cmd_buff_p < *cmd_buff + cmd_buff_len - tail_offset; cmd_buff_p++) {
+    for (cmd_buff_p = cmd_buff + head_offset; cmd_buff_p < cmd_buff + cmd_buff_len - tail_offset; cmd_buff_p++) {
         if (*cmd_buff_p == QUOTE_CHAR) {
             inside_quotes = !inside_quotes;
         }
-
 
         if (isspace(*cmd_buff_p)) {
             if (inside_quotes) {
@@ -154,8 +177,7 @@ int parse_cmd_buff(char **cmd_buff, int cmd_buff_len) {
 
     new_cmd_buff[i] = '\0';
 
-    free(*cmd_buff);
-    *cmd_buff = new_cmd_buff;
+    *dest = new_cmd_buff;
 
-    return new_cmd_buff_len;
+    return i;
 }
