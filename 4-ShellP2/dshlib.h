@@ -33,6 +33,7 @@ typedef struct command{
 #define PIPE_CHAR   '|'
 #define PIPE_STRING "|"
 #define QUOTE_CHAR '"'
+#define NULL_BYTE '\0'
 
 #define SH_PROMPT "dsh2> "
 #define EXIT_CMD "exit"
@@ -65,10 +66,11 @@ typedef enum {
     BI_CMD_CD,
     BI_NOT_BI,
     BI_EXECUTED,
+    BI_N_EXECUTED,
     BI_RC,
 } Built_In_Cmds;
 Built_In_Cmds match_command(const char *input); 
-Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd);
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds built_in);
 
 //main execution context
 int exec_local_cmd_loop();
@@ -81,4 +83,7 @@ int exec_cmd(cmd_buff_t *cmd);
 #define CMD_OK_HEADER       "PARSED COMMAND LINE - TOTAL COMMANDS %d\n"
 #define CMD_WARN_NO_CMD     "warning: no commands provided\n"
 #define CMD_ERR_PIPE_LIMIT  "error: piping limited to %d commands\n"
+#define CMD_ERR_EXECUTE "error: cannot execute %s\n"
+#define CMD_ERR_CD "error: cannot change directory "
+#define CMD_ERR_CLEAR "error: cannot clear cmd buffer.\n"
 #endif

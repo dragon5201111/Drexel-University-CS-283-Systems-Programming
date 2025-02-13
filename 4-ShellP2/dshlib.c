@@ -92,20 +92,80 @@ int exec_local_cmd_loop()
         
         // TODO IMPLEMENT if built-in command, execute builtin logic for exit, cd (extra credit: dragon)
         // the cd command should chdir to the provided directory; if no directory is provided, do nothing
-        if(match_command(cmd.argv[0]) != BI_NOT_BI){
-            printf("Implement executing builtin.\n");
+        Built_In_Cmds rc_built_in;
+        if((rc_built_in = match_command(cmd.argv[0])) != BI_NOT_BI){
+            // Command failed to execute
+            if((rc_built_in = exec_built_in_cmd(&cmd, rc_built_in)) == BI_N_EXECUTED){
+                printf(CMD_ERR_EXECUTE, cmd.argv[0]);
+            }else if(rc_built_in == BI_CMD_EXIT){
+                break;
+            }
         }else{
+            // TODO IMPLEMENT if not built-in command, fork/exec as an external command
+            // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
             printf("Implement executing not builtin.\n");
         }
 
-        // TODO IMPLEMENT if not built-in command, fork/exec as an external command
-        // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
-        
+        //Clear cmd
+        if(clear_cmd_buff(&cmd) == ERR_MEMORY){
+            printf(CMD_ERR_CLEAR);
+        }
     }
 
     free_cmd_buff(&cmd);
     free(cmd_buff);
     return OK;
+}
+
+
+/*
+Returns:
+    ERR_MEMORY - nothing to clear or an error occured while trying to clear
+    OK - successfully cleared cmd_buff
+*/
+int clear_cmd_buff(cmd_buff_t *cmd_buff){
+    if(cmd_buff == NULL) return ERR_MEMORY;
+
+
+    if(cmd_buff->_cmd_buffer != NULL){
+        memset(cmd_buff->_cmd_buffer, 0, strlen(cmd_buff->_cmd_buffer) + 1);
+    }
+    
+    
+    for (int i = 0; i < cmd_buff->argc; i++) {
+        if (cmd_buff->argv[i] != NULL) {
+            memset(cmd_buff->argv[i], 0, strlen(cmd_buff->argv[i]) + 1);
+        }
+    }
+    
+    cmd_buff->argc = 0;
+    return OK;
+}
+
+/*
+Returns:
+    BI_EXECUTED - if cmd was executed successfully
+    BI_N_EXECUTED - if cmd was not executed successfully
+    BI_CMD_EXIT - if cmd was exit, to signal main loop to break
+*/
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd,  Built_In_Cmds built_in){
+    switch (built_in)
+    {
+        case BI_CMD_DRAGON:
+            print_dragon();
+            break;
+        case BI_CMD_EXIT:
+            return BI_CMD_EXIT;
+        case BI_CMD_CD:
+            if(chdir(cmd->argv[1]) == -1){
+                perror(CMD_ERR_CD);
+                return BI_N_EXECUTED;
+            }
+            break;
+        default:
+            return BI_N_EXECUTED;
+    }
+    return BI_EXECUTED;
 }
 
 /*
@@ -212,7 +272,7 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     char *arg_start = formatted_cmd_line;
 
     for (int i = 0; i <= formatted_cmd_line_len; i++) {
-        if (formatted_cmd_line[i] == '\0') {
+        if (formatted_cmd_line[i] == NULL_BYTE) {
             int arg_start_len = strlen(arg_start);
 
             if(!can_insert_cmd_buff_argv(cmd_buff, arg_start_len)){
@@ -233,6 +293,7 @@ int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len){
         return arg_len <= EXE_MAX;
     }
 
+    // Does not exceed arg count and arg_len <= arg max size
     return (cmd_buff->argc + 1 <= CMD_ARGV_MAX) && (arg_len <= ARG_MAX);
 }
 
@@ -294,7 +355,7 @@ int format_cmd_line(char ** dest, char *cmd_line, int cmd_line_len) {
                     continue;
                 }
                 prev_was_space = 1;
-                new_cmd_buff[i++] = '\0';
+                new_cmd_buff[i++] = NULL_BYTE;
             }
         } else {
             new_cmd_buff[i++] = *cmd_line_p;
@@ -302,7 +363,7 @@ int format_cmd_line(char ** dest, char *cmd_line, int cmd_line_len) {
         }
     }
 
-    new_cmd_buff[i] = '\0';
+    new_cmd_buff[i] = NULL_BYTE;
 
     *dest = new_cmd_buff;
 
