@@ -84,6 +84,5 @@ int exec_cmd(cmd_buff_t *cmd);
 #define CMD_WARN_NO_CMD     "warning: no commands provided\n"
 #define CMD_ERR_PIPE_LIMIT  "error: piping limited to %d commands\n"
 #define CMD_ERR_EXECUTE "error: cannot execute %s\n"
-#define CMD_ERR_CD "error: cannot change directory "
 #define CMD_ERR_CLEAR "error: cannot clear cmd buffer.\n"
 #endif

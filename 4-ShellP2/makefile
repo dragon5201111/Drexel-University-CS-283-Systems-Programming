@@ -24,7 +24,7 @@ test:
 	bats $(wildcard ./bats/*.sh)
 
 valgrind:
-	echo "pwd\nexit" | valgrind --leak-check=full  --track-origins=yes --show-leak-kinds=all --error-exitcode=1 ./$(TARGET) 
+	echo "pwd\nls\nexit" | valgrind --leak-check=full  --track-origins=yes --show-leak-kinds=all --error-exitcode=1 ./$(TARGET) 
 	echo "pwd\nexit" | valgrind --tool=helgrind --error-exitcode=1 ./$(TARGET) 
 
 # Phony targets

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include "dragon.h"
 
 
 #define DECIMAL_DIGITS_BOUND(t) (241 * sizeof(t) / 100 + 1)
@@ -51,7 +52,7 @@ const char * DRAGON_ASCII[] = {
 
 
 // EXTRA CREDIT - print the drexel dragon from the readme.md
-extern void print_dragon(){
+void print_dragon(){
     const char * current_line;
     
     for (int i = 0; i < (int)DRAGON_LINES; i++) {

@@ -1,12 +1,15 @@
 #include <stdlib.h>
-#include <stdio.h>
+#include <sys/prctl.h>
+#include <signal.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <stdio.h>
 #include "dshlib.h"
+#include "dragon.h"
 
 /*
  * Implement your exec_local_cmd_loop function by building a loop that prompts the 
@@ -101,9 +104,16 @@ int exec_local_cmd_loop()
                 break;
             }
         }else{
-            // TODO IMPLEMENT if not built-in command, fork/exec as an external command
-            // for example, if the user input is "ls -l", you would fork/exec the command "ls" with the arg "-l"
-            printf("Implement executing not builtin.\n");
+
+            //Maintain pointer to last arg, and set to null
+            char * last_arg = cmd.argv[cmd.argc];
+            cmd.argv[cmd.argc] = NULL;
+
+            if((rc = exec_cmd(&cmd)) == ERR_EXEC_CMD){
+                printf(CMD_ERR_EXECUTE, cmd.argv[0]);
+            }
+
+            cmd.argv[cmd.argc] = last_arg;
         }
 
         //Clear cmd
@@ -117,6 +127,34 @@ int exec_local_cmd_loop()
     return OK;
 }
 
+/*
+Returns:
+    ERR_EXEC_CMD - on fork or exec failure
+    child return code - on success or failure
+*/
+int exec_cmd(cmd_buff_t *cmd){
+    int f_result = fork();
+
+    // Fork failed
+    if(f_result < 0){
+        return ERR_EXEC_CMD;
+    }
+
+    // Child process
+    if(f_result == 0){
+        prctl(PR_SET_PDEATHSIG, SIGKILL);
+
+        int rc = execvp(cmd->argv[0], cmd->argv);
+        
+        if(rc < 0){
+            exit(ERR_EXEC_CMD);
+        }
+    }else{
+        int status;
+        wait(&status);
+        return WEXITSTATUS(status);
+    }
+}
 
 /*
 Returns:
@@ -158,7 +196,6 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd,  Built_In_Cmds built_in){
             return BI_CMD_EXIT;
         case BI_CMD_CD:
             if(chdir(cmd->argv[1]) == -1){
-                perror(CMD_ERR_CD);
                 return BI_N_EXECUTED;
             }
             break;
@@ -215,14 +252,16 @@ int alloc_cmd_buff(cmd_buff_t *cmd_buff){
         return ERR_MEMORY;
     }
 
+    memset(cmd_buff->argv[0], NULL_BYTE, EXE_MAX + 1);
+
     // Allocate for args
     for(int i = 1; i < CMD_ARGV_MAX; i++){
         if((cmd_buff->argv[i] = (char *) malloc(sizeof(char) * (ARG_MAX + 1))) == NULL){
             free_cmd_buff(cmd_buff);
             return ERR_MEMORY;
         }
+        memset(cmd_buff->argv[i], NULL_BYTE, ARG_MAX + 1);
     }
-
     return OK;
 }
 
@@ -284,6 +323,8 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
             arg_start = &formatted_cmd_line[i + 1];
         }
     }
+
+
     free(formatted_cmd_line);
     return OK;
 }
