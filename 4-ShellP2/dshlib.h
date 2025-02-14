@@ -71,6 +71,7 @@ typedef enum {
 } Built_In_Cmds;
 Built_In_Cmds match_command(const char *input); 
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds built_in);
+Built_In_Cmds exec_cd_cmd(char * path);
 
 //main execution context
 int exec_local_cmd_loop();

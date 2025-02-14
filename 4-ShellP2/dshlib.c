@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <errno.h>
 #include <stdio.h>
 #include "dshlib.h"
 #include "dragon.h"
@@ -147,7 +148,7 @@ int exec_cmd(cmd_buff_t *cmd){
         int rc = execvp(cmd->argv[0], cmd->argv);
         
         if(rc < 0){
-            exit(ERR_EXEC_CMD);
+            exit(errno);
         }
     }else{
         int status;
@@ -182,27 +183,43 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff){
 
 /*
 Returns:
+    BI_EXECUTED - on success
+    BI_N_EXECUTED - on fail
+*/
+Built_In_Cmds exec_cd_cmd(char * path){
+    // Ignore no arguments
+    if(strlen(path) == 0) return BI_EXECUTED;
+
+    if(chdir(path) == -1){
+        return BI_N_EXECUTED;
+    }
+    return BI_EXECUTED;
+}
+
+/*
+Returns:
     BI_EXECUTED - if cmd was executed successfully
     BI_N_EXECUTED - if cmd was not executed successfully
     BI_CMD_EXIT - if cmd was exit, to signal main loop to break
 */
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd,  Built_In_Cmds built_in){
+    Built_In_Cmds rc;
     switch (built_in)
     {
         case BI_CMD_DRAGON:
-            print_dragon();
+            rc = print_dragon();
             break;
         case BI_CMD_EXIT:
-            return BI_CMD_EXIT;
+            rc = BI_CMD_EXIT;
+            break;
         case BI_CMD_CD:
-            if(chdir(cmd->argv[1]) == -1){
-                return BI_N_EXECUTED;
-            }
+            rc = exec_cd_cmd(cmd->argv[1]);
             break;
         default:
-            return BI_N_EXECUTED;
+            rc = BI_N_EXECUTED;
     }
-    return BI_EXECUTED;
+
+    return rc;
 }
 
 /*
