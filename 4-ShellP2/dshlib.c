@@ -115,17 +115,19 @@ int exec_local_cmd_loop()
                 print_error_builtin(match_command(cmd.argv[0]));
             }
 
-            //Builtin executed successfully
+            // Builtin executed successfully
             // set rc to errno
             rc = errno;
         }else{
 
-            //Maintain pointer to last arg, and set to null
+            //Maintain pointer to last arg, and set to null for execvp
             char * last_arg = cmd.argv[cmd.argc];
             cmd.argv[cmd.argc] = NULL;
             
             // Set rc so it can be printed and stored in return_code
             rc = exec_cmd(&cmd);
+
+            // Restore last argument so no memory leaks occur
             cmd.argv[cmd.argc] = last_arg;
 
             // Print errors if any
@@ -201,6 +203,7 @@ int exec_cmd(cmd_buff_t *cmd){
 
     // Child process
     if(f_result == 0){
+        // Kill child if parent dies
         prctl(PR_SET_PDEATHSIG, SIGKILL);
 
         int rc = execvp(cmd->argv[0], cmd->argv);
