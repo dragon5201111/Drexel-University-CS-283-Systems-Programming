@@ -2,6 +2,7 @@
     #define __DSHLIB_H__
 
 
+
 //Constants for command structure sizes
 #define EXE_MAX 64
 #define ARG_MAX 256
@@ -58,6 +59,8 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff);
 int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len);
 int format_cmd_line(char ** dest, char *cmd_line, int cmd_line_len);
+void print_error_n_builtin(char * exe_name, int err);
+void set_rc(int new_rc, int * rc);
 
 //built in command stuff
 typedef enum {
@@ -69,21 +72,35 @@ typedef enum {
     BI_N_EXECUTED,
     BI_RC,
 } Built_In_Cmds;
+
 Built_In_Cmds match_command(const char *input); 
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds built_in);
 Built_In_Cmds exec_cd_cmd(char * path);
+void print_error_builtin(Built_In_Cmds built_in);
+void print_rc(int rc);
 
 //main execution context
 int exec_local_cmd_loop();
 int exec_cmd(cmd_buff_t *cmd);
 
 
-
-
 //output constants
 #define CMD_OK_HEADER       "PARSED COMMAND LINE - TOTAL COMMANDS %d\n"
 #define CMD_WARN_NO_CMD     "warning: no commands provided\n"
 #define CMD_ERR_PIPE_LIMIT  "error: piping limited to %d commands\n"
+#define CMD_ERR_TOO_MANY_ARGS "Too many arguments supplied.\n"
 #define CMD_ERR_EXECUTE "error: cannot execute %s\n"
 #define CMD_ERR_CLEAR "error: cannot clear cmd buffer.\n"
+#define CMD_ERR_BUILTIN "Unable to execute builtin.\n"
+#define CMD_ERR_PERM_OP "error: Operation not permitted while executing '%s'.\n"
+#define CMD_ERR_N_FOUND "error: Command '%s' not found.\n"
+#define CMD_ERR_PERM_EXEC "error: Permission denied to execute '%s'.\n"
+#define CMD_ERR_EXEC "error: '%s' is not executable.\n"
+#define CMD_ERR_EXEC_MEM "error: Not enough memory to execute '%s'.\n"
+#define CMD_EXEC_DEFAULT "error: Failed to execute '%s'. error code: %d.\n"
+
+#define ERR_MEMORY_INIT "Unable to initialize memory for buffers.\n"
+
+extern int return_code_cmd;
+
 #endif

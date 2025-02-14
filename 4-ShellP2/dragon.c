@@ -53,7 +53,7 @@ const char * DRAGON_ASCII[] = {
 
 
 // EXTRA CREDIT - print the drexel dragon from the readme.md
-Built_In_Cmds print_dragon(){
+void print_dragon(){
     const char * current_line;
     
     for (int i = 0; i < (int)DRAGON_LINES; i++) {
@@ -83,5 +83,4 @@ Built_In_Cmds print_dragon(){
         putchar('\n');
     }
 
-    return BI_EXECUTED;
 }

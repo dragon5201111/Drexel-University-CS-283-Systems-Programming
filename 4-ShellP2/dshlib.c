@@ -59,16 +59,15 @@ int exec_local_cmd_loop()
 {
     char *cmd_buff = (char *) malloc(SH_CMD_MAX * sizeof(char));
     cmd_buff_t cmd;
-    int rc = 0;
-
+    int rc = 0, return_code_cmd = 0;
 
     if(cmd_buff == NULL){
-        perror("Unable to allocate memory for cmd_buff.\n");
+        perror(ERR_MEMORY_INIT);
         return ERR_MEMORY;
     }
 
     if((alloc_cmd_buff(&cmd)) == ERR_MEMORY){
-        perror("Unable to allocate memory for cmd.\n");
+        perror(ERR_MEMORY_INIT);
         return ERR_MEMORY;
     }
     
@@ -83,62 +82,121 @@ int exec_local_cmd_loop()
         cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
 
         if((rc = build_cmd_buff(cmd_buff, &cmd)) == WARN_NO_CMDS){
-            printf(CMD_WARN_NO_CMD);
+            fprintf(stderr, CMD_WARN_NO_CMD);
+            set_rc(WARN_NO_CMDS, &return_code_cmd);
             continue;
+
         }else if(rc == ERR_MEMORY){
             return ERR_MEMORY;
+
         }else if(rc == ERR_CMD_OR_ARGS_TOO_BIG){
-            printf("Too many arguments supplied.\n");
+
+            fprintf(stderr, CMD_ERR_TOO_MANY_ARGS);
+            set_rc(ERR_CMD_OR_ARGS_TOO_BIG, &return_code_cmd);
+
             continue;
         }
 
         // rc should be OK at this point.
         
-        // TODO IMPLEMENT if built-in command, execute builtin logic for exit, cd (extra credit: dragon)
-        // the cd command should chdir to the provided directory; if no directory is provided, do nothing
         Built_In_Cmds rc_built_in;
         if((rc_built_in = match_command(cmd.argv[0])) != BI_NOT_BI){
+
             // Command failed to execute
-            if((rc_built_in = exec_built_in_cmd(&cmd, rc_built_in)) == BI_N_EXECUTED){
-                printf(CMD_ERR_EXECUTE, cmd.argv[0]);
-            }else if(rc_built_in == BI_CMD_EXIT){
+            if((rc_built_in = exec_built_in_cmd(&cmd, rc_built_in)) == BI_CMD_EXIT){
                 break;
+
+            }else if(rc_built_in == BI_RC){
+                // Print last return code
+                print_rc(return_code_cmd);
+                set_rc(OK, &return_code_cmd);
+
+            }else if(rc_built_in == BI_N_EXECUTED){
+                print_error_builtin(match_command(cmd.argv[0]));
             }
+
+            //Builtin executed successfully
+            // set rc to errno
+            rc = errno;
         }else{
 
             //Maintain pointer to last arg, and set to null
             char * last_arg = cmd.argv[cmd.argc];
             cmd.argv[cmd.argc] = NULL;
-
-            if((rc = exec_cmd(&cmd)) == ERR_EXEC_CMD){
-                printf(CMD_ERR_EXECUTE, cmd.argv[0]);
-            }
-
+            
+            // Set rc so it can be printed and stored in return_code
+            rc = exec_cmd(&cmd);
             cmd.argv[cmd.argc] = last_arg;
+
+            // Print errors if any
+            print_error_n_builtin(cmd.argv[0], rc);
         }
+        
+        // Set return code from either builtin or external command
+        set_rc(rc, &return_code_cmd);
 
         //Clear cmd
         if(clear_cmd_buff(&cmd) == ERR_MEMORY){
-            printf(CMD_ERR_CLEAR);
+            fprintf(stderr, CMD_ERR_CLEAR);
+            set_rc(ERR_MEMORY, &return_code_cmd);
+            break;
         }
     }
 
-    free_cmd_buff(&cmd);
+    if(free_cmd_buff(&cmd) == ERR_MEMORY){
+        return ERR_MEMORY;
+    }
+
     free(cmd_buff);
     return OK;
 }
 
+void print_rc(int rc){
+    printf("%d\n", rc);
+}
+
+void set_rc(int new_rc, int * rc){
+    *rc = new_rc;
+}
+
+void print_error_n_builtin(char *exe_name, int err) {
+    switch (err) {
+        case EPERM:
+            fprintf(stderr, CMD_ERR_PERM_OP, exe_name);
+            break;
+        case EACCES:
+            fprintf(stderr, CMD_ERR_PERM_EXEC, exe_name);
+            break;
+        case ENOENT:
+            fprintf(stderr, CMD_ERR_N_FOUND, exe_name);
+            break;
+        case ENOEXEC:
+            fprintf(stderr, CMD_ERR_EXEC, exe_name);
+            break;
+        case ENOMEM:
+            fprintf(stderr, CMD_ERR_EXEC_MEM, exe_name);
+            break;
+    }
+}
+
+void print_error_builtin(Built_In_Cmds built_in){
+    if(built_in == BI_CMD_CD){
+        perror("cd");
+    }else{
+        printf(CMD_ERR_BUILTIN);
+    }
+}
+
 /*
 Returns:
-    ERR_EXEC_CMD - on fork or exec failure
-    child return code - on success or failure
+    errno
 */
 int exec_cmd(cmd_buff_t *cmd){
     int f_result = fork();
 
     // Fork failed
     if(f_result < 0){
-        return ERR_EXEC_CMD;
+        return errno;
     }
 
     // Child process
@@ -155,6 +213,11 @@ int exec_cmd(cmd_buff_t *cmd){
         wait(&status);
         return WEXITSTATUS(status);
     }
+
+
+    // So compilier stops complaining
+    // Not possible to reach here but compilier won't shut up
+    return errno;
 }
 
 /*
@@ -183,31 +246,31 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff){
 
 /*
 Returns:
-    BI_EXECUTED - on success
-    BI_N_EXECUTED - on fail
+    BI_EXECUTED 
 */
 Built_In_Cmds exec_cd_cmd(char * path){
     // Ignore no arguments
     if(strlen(path) == 0) return BI_EXECUTED;
-
-    if(chdir(path) == -1){
-        return BI_N_EXECUTED;
-    }
-    return BI_EXECUTED;
+    return (chdir(path) == -1) ? BI_N_EXECUTED : BI_EXECUTED;
 }
 
 /*
 Returns:
     BI_EXECUTED - if cmd was executed successfully
-    BI_N_EXECUTED - if cmd was not executed successfully
     BI_CMD_EXIT - if cmd was exit, to signal main loop to break
+    BI_N_EXECUTED - if cmd failed to execute
+    BI_RC - if cmd was rc, to signal to main loop to print last return code
 */
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd,  Built_In_Cmds built_in){
-    Built_In_Cmds rc;
+    Built_In_Cmds rc = BI_EXECUTED;
+
     switch (built_in)
     {
         case BI_CMD_DRAGON:
-            rc = print_dragon();
+            print_dragon();
+            break;
+        case BI_RC:
+            rc = BI_RC;
             break;
         case BI_CMD_EXIT:
             rc = BI_CMD_EXIT;
@@ -217,6 +280,7 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd,  Built_In_Cmds built_in){
             break;
         default:
             rc = BI_N_EXECUTED;
+            break;
     }
 
     return rc;
