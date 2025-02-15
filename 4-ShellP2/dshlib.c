@@ -78,7 +78,7 @@ int exec_local_cmd_loop()
             printf("\n");
             break;
         }
-
+                
         cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
 
         if((rc = build_cmd_buff(cmd_buff, &cmd)) == WARN_NO_CMDS){
@@ -87,8 +87,10 @@ int exec_local_cmd_loop()
             continue;
 
         }else if(rc == ERR_MEMORY){
-            // Stop shell if memory
-            return ERR_MEMORY;
+            fprintf(stderr, ERR_MEMORY_CMD_BUILD);
+            set_rc(ERR_MEMORY, &return_code_cmd);
+
+            continue;
 
         }else if(rc == ERR_CMD_OR_ARGS_TOO_BIG){
 
@@ -110,13 +112,8 @@ int exec_local_cmd_loop()
         if((rc_built_in = match_command(cmd.argv[0])) != BI_NOT_BI){
 
             // Command failed to execute
-            if((rc_built_in = exec_built_in_cmd(&cmd, rc_built_in)) == BI_CMD_EXIT){
+            if((rc_built_in = exec_built_in_cmd(&cmd, rc_built_in, return_code_cmd)) == BI_CMD_EXIT){
                 break;
-
-            }else if(rc_built_in == BI_RC){
-                // Print last return code
-                print_rc(return_code_cmd);
-                rc = BI_EXECUTED;
             }else if(rc_built_in == BI_N_EXECUTED){
                 print_error_builtin(match_command(cmd.argv[0]));
                 rc = ERR_EXEC_CMD;
@@ -270,7 +267,7 @@ Returns:
     BI_N_EXECUTED - if cmd failed to execute
     BI_RC - if cmd was rc, to signal to main loop to print last return code
 */
-Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd,  Built_In_Cmds built_in){
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd,  Built_In_Cmds built_in, int return_code){
     Built_In_Cmds rc = BI_EXECUTED;
 
     switch (built_in)
@@ -279,7 +276,7 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd,  Built_In_Cmds built_in){
             print_dragon();
             break;
         case BI_RC:
-            rc = BI_RC;
+            print_rc(return_code);
             break;
         case BI_CMD_EXIT:
             rc = BI_CMD_EXIT;

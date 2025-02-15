@@ -508,22 +508,20 @@ EOF
     [ "$status" -eq 0 ]
 }
 
-
-@test "Leading and Trailing whitespace is ignored" {
+@test "Built-in that takes no arguments ignores arguments" {
     current=$(pwd)
-    res=$(echo hi)
     cd /tmp
     mkdir -p dsh-test
 
     run "${current}/dsh" <<EOF
-    echo hi          
+rc foo        
 EOF
 
     # Strip all whitespace (spaces, tabs, newlines) from the output
     stripped_output=$(echo "$output" | tr -d '[:space:]')
 
     # Expected output with all whitespace removed for easier matching
-    expected_output="${res}dsh2>dsh2>cmdloopreturned0"
+    expected_output="dsh2>0dsh2>cmdloopreturned0"
 
     # These echo commands will help with debugging and will only print
     #if the test fails
@@ -539,7 +537,35 @@ EOF
     [ "$status" -eq 0 ]
 }
 
+@test "cd ignores multiple arguments" {
+    current=$(pwd)
 
+    cd /tmp
+    mkdir -p dsh-test
 
+    run "${current}/dsh" <<EOF                
+cd dsh-test f b
+pwd
+EOF
+
+    # Strip all whitespace (spaces, tabs, newlines) from the output
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+
+    # Expected output with all whitespace removed for easier matching
+    expected_output="/tmp/dsh-testdsh2>dsh2>dsh2>cmdloopreturned0"
+
+    # These echo commands will help with debugging and will only print
+    #if the test fails
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    # Check exact match
+    [ "$stripped_output" = "$expected_output" ]
+
+    # Assertions
+    [ "$status" -eq 0 ]
+}
 
 

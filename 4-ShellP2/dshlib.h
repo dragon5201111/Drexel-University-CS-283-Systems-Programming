@@ -74,7 +74,7 @@ typedef enum {
 } Built_In_Cmds;
 
 Built_In_Cmds match_command(const char *input); 
-Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds built_in);
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds built_in, int return_code);
 Built_In_Cmds exec_cd_cmd(char * path);
 void print_error_builtin(Built_In_Cmds built_in);
 void print_rc(int rc);
@@ -100,6 +100,7 @@ int exec_cmd(cmd_buff_t *cmd);
 #define CMD_EXEC_DEFAULT "error: Failed to execute '%s'. error code: %d.\n"
 
 #define ERR_MEMORY_INIT "Unable to initialize memory for buffers.\n"
+#define ERR_MEMORY_CMD_BUILD "Unable to build cmd buffer.\n"
 
 extern int return_code_cmd;
 
