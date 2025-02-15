@@ -74,7 +74,7 @@ int exec_local_cmd_loop()
     while(1){
         printf("%s", SH_PROMPT);
         
-        if (fgets(cmd_buff, ARG_MAX, stdin) == NULL){
+        if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL){
             printf("\n");
             break;
         }
@@ -87,12 +87,19 @@ int exec_local_cmd_loop()
             continue;
 
         }else if(rc == ERR_MEMORY){
+            // Stop shell if memory
             return ERR_MEMORY;
 
         }else if(rc == ERR_CMD_OR_ARGS_TOO_BIG){
 
             fprintf(stderr, CMD_ERR_TOO_MANY_ARGS);
             set_rc(ERR_CMD_OR_ARGS_TOO_BIG, &return_code_cmd);
+
+            continue;
+        }else if(rc == ERR_CMD_ARGS_BAD){
+            
+            fprintf(stderr, CMD_ERR_TOO_MANY_ARGS);
+            set_rc(ERR_CMD_ARGS_BAD, &return_code_cmd);
 
             continue;
         }
@@ -109,15 +116,14 @@ int exec_local_cmd_loop()
             }else if(rc_built_in == BI_RC){
                 // Print last return code
                 print_rc(return_code_cmd);
-                set_rc(OK, &return_code_cmd);
-
+                rc = BI_EXECUTED;
             }else if(rc_built_in == BI_N_EXECUTED){
                 print_error_builtin(match_command(cmd.argv[0]));
+                rc = ERR_EXEC_CMD;
+            }else{
+                // Successfully executed
+                rc = BI_EXECUTED;
             }
-
-            // Builtin executed successfully
-            // set rc to errno
-            rc = errno;
         }else{
 
             //Maintain pointer to last arg, and set to null for execvp
@@ -377,7 +383,8 @@ int free_cmd_buff(cmd_buff_t *cmd_buff){
         OK - on building cmd_buff successfully
         ERR_MEMORY - memory allocation failed
         WARN_NO_CMDS - empty command or command of only whitespace
-        ERR_CMD_OR_ARGS_TOO_BIG - exe or args were too large/exceeded maximum size
+        ERR_CMD_OR_ARGS_TOO_BIG - exe size exceeds maximum
+        ERR_CMD_ARGS_BAD - arg count is too large or arg size exceeds maximum
 */
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     char * formatted_cmd_line = NULL;
@@ -393,14 +400,15 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     strcpy(cmd_buff->_cmd_buffer, formatted_cmd_line);
 
     char *arg_start = formatted_cmd_line;
+    int can_insert = 0;
 
     for (int i = 0; i <= formatted_cmd_line_len; i++) {
         if (formatted_cmd_line[i] == NULL_BYTE) {
             int arg_start_len = strlen(arg_start);
 
-            if(!can_insert_cmd_buff_argv(cmd_buff, arg_start_len)){
+            if((can_insert = can_insert_cmd_buff_argv(cmd_buff, arg_start_len)) != OK){
                 free(formatted_cmd_line);
-                return ERR_CMD_OR_ARGS_TOO_BIG;
+                return can_insert;
             }
             
             strcpy(cmd_buff->argv[cmd_buff->argc++], arg_start);
@@ -415,11 +423,10 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
 
 int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len){
     if(cmd_buff->argc == 0){
-        return arg_len <= EXE_MAX;
+        return (arg_len <= EXE_MAX) ? OK: ERR_CMD_OR_ARGS_TOO_BIG;
     }
-
     // Does not exceed arg count and arg_len <= arg max size
-    return (cmd_buff->argc + 1 <= CMD_ARGV_MAX) && (arg_len <= ARG_MAX);
+    return ((cmd_buff->argc + 1 <= CMD_ARGV_MAX) && (arg_len <= ARG_MAX)) ? OK : ERR_CMD_ARGS_BAD;
 }
 
 /*
