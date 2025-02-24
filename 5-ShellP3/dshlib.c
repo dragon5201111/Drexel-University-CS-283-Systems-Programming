@@ -66,8 +66,8 @@ int exec_local_cmd_loop()
         if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL){
             printf("\n");
             break;
-        }
-                
+        }      
+        
     }
     
     free(cmd_buff);
