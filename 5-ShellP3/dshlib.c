@@ -154,6 +154,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist){
     return OK;
 }
 
+
 /*
 Returns:
     OK - if cmd_buff was built successfully
