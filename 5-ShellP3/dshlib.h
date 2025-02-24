@@ -76,6 +76,8 @@ int execute_pipeline(command_list_t *clist);
 #define CMD_OK_HEADER       "PARSED COMMAND LINE - TOTAL COMMANDS %d\n"
 #define CMD_WARN_NO_CMD     "warning: no commands provided\n"
 #define CMD_ERR_PIPE_LIMIT  "error: piping limited to %d commands\n"
-#define ERR_MEMORY_INIT "Unable to initialize memory for buffers.\n"
-
+#define CMD_ERR_MEMORY_INIT "error: unable to initialize memory for buffers.\n"
+#define CMD_OR_ARGS_TOO_BIG "error: exe or args are too large.\n"
+#define CMD_OR_ARGS_BAD "error: exe or args are invalid.\n"
+#define CMD_ERR_BUILD_CLIST "error: unable to allocate memory for command list.\n"
 #endif

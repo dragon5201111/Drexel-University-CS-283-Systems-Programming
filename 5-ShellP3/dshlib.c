@@ -58,7 +58,7 @@ int exec_local_cmd_loop()
     int rc = 0;
     
     if(cmd_buff == NULL){
-        perror(ERR_MEMORY_INIT);
+        perror(CMD_ERR_MEMORY_INIT);
         return ERR_MEMORY;
     }
 
@@ -80,8 +80,19 @@ int exec_local_cmd_loop()
             continue;
         }else if(rc == ERR_TOO_MANY_COMMANDS){
             fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
+            continue;
         }else if(rc == ERR_MEMORY){
-            // Implement
+            fprintf(stderr, CMD_ERR_BUILD_CLIST);
+            free_cmd_list(&command_list);
+            continue;
+        }else if(rc == ERR_CMD_ARGS_BAD){
+            fprintf(stderr, CMD_OR_ARGS_TOO_BIG);
+            free_cmd_list(&command_list);
+            continue;
+        }else if(rc == ERR_CMD_OR_ARGS_TOO_BIG){
+            fprintf(stderr, CMD_OR_ARGS_TOO_BIG);
+            free_cmd_list(&command_list);
+            continue;
         }
         
     }
@@ -93,11 +104,11 @@ int exec_local_cmd_loop()
 
 /*
 Returns:
-    WARN_NO_CMDS
+    WARN_NO_CMDS - Empty command line
     ERR_TOO_MANY_COMMANDS - Pipe limit was reached 
     ERR_CMD_OR_ARGS_TOO_BIG 
     ERR_CMD_ARGS_BAD
-    ERR_MEMORY
+    ERR_MEMORY - On allocation error
     OK - Command list was built successfully
 */
 int build_cmd_list(char *cmd_line, command_list_t *clist){
@@ -128,12 +139,17 @@ int build_cmd_list(char *cmd_line, command_list_t *clist){
             return WARN_NO_CMDS;
         }else if(rc_build_cmd_buff == ERR_MEMORY){
             return ERR_MEMORY;
+        }else if(rc_build_cmd_buff == ERR_CMD_OR_ARGS_TOO_BIG){
+            return ERR_CMD_OR_ARGS_TOO_BIG;
+        }else if(rc_build_cmd_buff == ERR_CMD_ARGS_BAD){
+            return ERR_CMD_ARGS_BAD;
         }
 
         // Populate clist with parsed commands
         clist->commands[num_commands++] = *cmd_buff;
         command_token = strtok(NULL, PIPE_STRING);
     }
+
     clist->num = num_commands;
     return OK;
 }
@@ -143,6 +159,8 @@ Returns:
     OK - if cmd_buff was built successfully
     CMD_WARN_NO_CMD - if cmd_line was empty
     ERR_MEMORY - if any memory issues arise
+    ERR_CMD_OR_ARGS_TOO_BIG - exe size exceeds maximum
+    ERR_CMD_ARGS_BAD - arg count is too large or arg size exceeds maximum
 */
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     int cmd_line_len = strlen(cmd_line);
@@ -156,15 +174,45 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     if((formatted_cmd_line_len = format_cmd_line(&cmd_buff->_cmd_buffer, cmd_line, cmd_line_len)) ==  ERR_MEMORY) 
         return ERR_MEMORY;
 
-    printf("After formatting:%s, Length:%d\n", cmd_buff->_cmd_buffer, formatted_cmd_line_len);
+    // Debug to print after formatting
+    //printf("After formatting:%s, Length:%d\n", cmd_buff->_cmd_buffer, formatted_cmd_line_len);
 
     // Copy args into cmd_buff
     char * arg_start = cmd_buff->_cmd_buffer;
+    int can_insert = 0;
     
+    for(int i = 0; i <= formatted_cmd_line_len; i++){
+        if(cmd_buff->_cmd_buffer[i] == NULL_BYTE){
+            // Debug to print arg
+            //printf("Arg:%s\n", arg_start);
+            if((can_insert = can_insert_cmd_buff_argv(cmd_buff, strlen(arg_start))) != OK){
+                return can_insert;
+            }
 
+            cmd_buff->argv[cmd_buff->argc++] = strdup(arg_start);
+
+            if(cmd_buff->argv[cmd_buff->argc - 1] == NULL) return ERR_MEMORY;
+            arg_start = &cmd_buff->_cmd_buffer[i+1];
+        }
+    }
+
+    printf("Command: %s\n", cmd_buff->argv[0]);
+    for(int i = 1; i < cmd_buff->argc; i++){
+        printf("Arg: %s\n", cmd_buff->argv[i]);
+    }
 
     return OK;
 }
+
+
+int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len){
+    if(cmd_buff->argc == 0){
+        return (arg_len <= EXE_MAX) ? OK: ERR_CMD_OR_ARGS_TOO_BIG;
+    }
+    // Does not exceed arg count and arg_len <= arg max size
+    return ((cmd_buff->argc + 1 <= CMD_ARGV_MAX) && (arg_len <= ARG_MAX)) ? OK : ERR_CMD_ARGS_BAD;
+}
+
 
 
 /*
@@ -198,6 +246,7 @@ int format_cmd_line(char **dest, char *src, int src_len) {
             if (in_quotes) {
                 formatted[j++] = current;
             } else if (!last_was_space) {
+                // Delimitter for args
                 formatted[j++] = NULL_BYTE;
                 last_was_space = 1;
             }
