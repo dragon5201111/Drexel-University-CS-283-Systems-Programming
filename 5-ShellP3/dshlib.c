@@ -107,7 +107,7 @@ int exec_local_cmd_loop()
         // TODO:
         //- Execute pipeline
         //- Implement RC
-        //- Optimize memory allocation
+        //- Optimize memory usage (implement with static memory)
     }
 
 
