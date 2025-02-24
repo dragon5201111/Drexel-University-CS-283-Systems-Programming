@@ -72,7 +72,7 @@ int exec_local_cmd_loop()
             printf("\n");
             break;
         }
-        
+
         cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
 
         if((rc = build_cmd_list(cmd_buff, &command_list)) == WARN_NO_CMDS){
@@ -101,7 +101,7 @@ int exec_local_cmd_loop()
         }
 
         // Debug to print command_list
-        //_print_cmd_list(&command_list);
+        _print_cmd_list(&command_list);
 
         free_cmd_list(&command_list);
         // TODO:
@@ -203,15 +203,13 @@ int build_cmd_list(char *cmd_line, command_list_t *clist){
     if(pipe_cnt >= CMD_MAX) return ERR_TOO_MANY_COMMANDS;
 
     // Parse individual commands
-    cmd_buff_t * cmd_buff;
     int rc_build_cmd_buff;
 
     int num_commands = 0;
     char * command_token = strtok(cmd_line, PIPE_STRING);
     while(command_token != NULL){        
-        cmd_buff = &clist->commands[num_commands];
        
-        if((rc_build_cmd_buff = build_cmd_buff(command_token, cmd_buff)) == WARN_NO_CMDS){
+        if((rc_build_cmd_buff = build_cmd_buff(command_token,  &clist->commands[num_commands])) == WARN_NO_CMDS){
             return WARN_NO_CMDS;
         }else if(rc_build_cmd_buff == ERR_MEMORY){
             return ERR_MEMORY;
@@ -221,8 +219,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist){
             return ERR_CMD_ARGS_BAD;
         }
 
-        // Populate clist with parsed commands
-        clist->commands[num_commands++] = *cmd_buff;
+        num_commands++;
         command_token = strtok(NULL, PIPE_STRING);
     }
 
