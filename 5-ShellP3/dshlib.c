@@ -76,38 +76,109 @@ int exec_local_cmd_loop()
         cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
 
         if((rc = build_cmd_list(cmd_buff, &command_list)) == WARN_NO_CMDS){
+            // Set rc
             fprintf(stderr, CMD_WARN_NO_CMD);
             continue;
         }else if(rc == ERR_TOO_MANY_COMMANDS){
+            // Set rc
             fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
             continue;
         }else if(rc == ERR_MEMORY){
+            // Set rc
             fprintf(stderr, CMD_ERR_BUILD_CLIST);
-            // Free command_list and set RC
+            free_cmd_list(&command_list);
             continue;
         }else if(rc == ERR_CMD_ARGS_BAD){
+            // Set rc
             fprintf(stderr, CMD_OR_ARGS_BAD);
-            // Free command_list and set RC
+            free_cmd_list(&command_list);
             continue;
         }else if(rc == ERR_CMD_OR_ARGS_TOO_BIG){
+            // Set rc
             fprintf(stderr, CMD_OR_ARGS_TOO_BIG);
-            // Free command_list and set RC
+            free_cmd_list(&command_list);
             continue;
         }
 
         // Debug to print command_list
-        //printf("Number of commands:%d\n", command_list.num);for(int i = 0; i < command_list.num; i++){cmd_buff_t current_cmd = command_list.commands[i];printf("Current command:-%s\n", current_cmd.argv[0]);for(int j = 1; j < current_cmd.argc; j++){printf("Arg: %d-%s\n", j, current_cmd.argv[j]);}putchar('\n');}
-        
+        //_print_cmd_list(&command_list);
+
+        free_cmd_list(&command_list);
         // TODO:
-        //- Free/Dealloc/Clear command_list, and sub cmd_buff_t here (in function)
         //- Execute pipeline
-    
+        //- Implement RC
+        //- Optimize memory allocation
     }
-    
+
+
     free(cmd_buff);
     return OK;
 }
 
+/*
+Returns:
+    OK - on deallocation success
+    ERR_MEMORY - on deallocation failure
+*/
+int free_cmd_buff(cmd_buff_t *cmd_buff) {
+    if (cmd_buff == NULL) return ERR_MEMORY; 
+
+    if (cmd_buff->_cmd_buffer != NULL) {
+        free(cmd_buff->_cmd_buffer);
+    }
+
+    for (int i = 0; i < cmd_buff->argc; i++) {
+        if (cmd_buff->argv[i] != NULL) {
+            free(cmd_buff->argv[i]);
+        }
+    }
+
+    return OK;
+}
+
+// Debug function to print cmd list
+void _print_cmd_list(command_list_t * clist){
+    if(clist == NULL || clist->num <= 0) return;
+
+    printf("=============================\n");
+    printf("Clist Debug print:\n");
+    printf("Total commands in clist: %d\n\n", clist->num);
+    
+    cmd_buff_t current_cmd;
+    int arg_c;
+
+    for(int i = 0; i < clist->num; i++){
+        current_cmd = clist->commands[i];
+        arg_c = current_cmd.argc;
+
+        printf("Command <%d>: %s\n", i+1, current_cmd.argv[0]);
+        printf("Args: [");
+
+        
+        for(int j = 1; j < arg_c; j++){
+            printf((j + 1 == arg_c)? ("%s") : ("%s,"), current_cmd.argv[j]);
+        }
+
+        printf((i+1 == clist->num) ? "]\n" : "]\n\n");
+    }
+    printf("=============================\n");
+
+}
+
+/*
+Returns:
+    OK - on deallocation success
+    ERR_MEMORY - on deallocation failure
+*/
+int free_cmd_list(command_list_t *cmd_lst){
+    if(cmd_lst == NULL || cmd_lst->num <= 0) return ERR_MEMORY;
+
+    for(int i = 0; i < cmd_lst->num; i++){
+        free_cmd_buff(&cmd_lst->commands[i]);
+    }
+
+    return OK;
+}
 
 /*
 Returns:
@@ -138,9 +209,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist){
     int num_commands = 0;
     char * command_token = strtok(cmd_line, PIPE_STRING);
     while(command_token != NULL){        
-        // Allocate for cmd_buff
-        cmd_buff = (cmd_buff_t *) malloc(sizeof(cmd_buff_t));
-        if(cmd_buff == NULL) return ERR_MEMORY;
+        cmd_buff = &clist->commands[num_commands];
        
         if((rc_build_cmd_buff = build_cmd_buff(command_token, cmd_buff)) == WARN_NO_CMDS){
             return WARN_NO_CMDS;
@@ -160,7 +229,6 @@ int build_cmd_list(char *cmd_line, command_list_t *clist){
     clist->num = num_commands;
     return OK;
 }
-
 
 /*
 Returns:

@@ -44,15 +44,16 @@ typedef struct command_list{
 #define OK_EXIT                 -7
 
 //prototypes
-int alloc_cmd_buff(cmd_buff_t *cmd_buff);
+//int alloc_cmd_buff(cmd_buff_t *cmd_buff);
 int free_cmd_buff(cmd_buff_t *cmd_buff);
-int clear_cmd_buff(cmd_buff_t *cmd_buff);
+//int clear_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff);
-int close_cmd_buff(cmd_buff_t *cmd_buff);
+//int close_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_list(char *cmd_line, command_list_t *clist);
 int free_cmd_list(command_list_t *cmd_lst);
 int format_cmd_line(char **dest, char *src, int src_len);
 int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len);
+void _print_cmd_list(command_list_t * clist);
 
 //built in command stuff
 typedef enum {
@@ -69,9 +70,6 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd);
 int exec_local_cmd_loop();
 int exec_cmd(cmd_buff_t *cmd);
 int execute_pipeline(command_list_t *clist);
-
-
-
 
 //output constants
 #define CMD_OK_HEADER       "PARSED COMMAND LINE - TOTAL COMMANDS %d\n"
