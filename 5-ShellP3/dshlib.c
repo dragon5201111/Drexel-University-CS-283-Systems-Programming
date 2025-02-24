@@ -83,18 +83,20 @@ int exec_local_cmd_loop()
             continue;
         }else if(rc == ERR_MEMORY){
             fprintf(stderr, CMD_ERR_BUILD_CLIST);
-            free_cmd_list(&command_list);
+            // Do something here instead of continuing
             continue;
         }else if(rc == ERR_CMD_ARGS_BAD){
             fprintf(stderr, CMD_OR_ARGS_TOO_BIG);
-            free_cmd_list(&command_list);
+            // Do something here instead of continuing
             continue;
         }else if(rc == ERR_CMD_OR_ARGS_TOO_BIG){
             fprintf(stderr, CMD_OR_ARGS_TOO_BIG);
-            free_cmd_list(&command_list);
+            // Do something here instead of continuing
             continue;
         }
         
+        // Debug to print command_list
+        //printf("Number of commands:%d\n", command_list.num);for(int i = 0; i < command_list.num; i++){cmd_buff_t current_cmd = command_list.commands[i];printf("Current command: %s\n", current_cmd.argv[0]);for(int j = 1; j < current_cmd.argc; j++){printf("Arg: %d, %s\n", j, current_cmd.argv[j]);}putchar('\n');}
     }
     
     free(cmd_buff);
@@ -195,11 +197,6 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
             if(cmd_buff->argv[cmd_buff->argc - 1] == NULL) return ERR_MEMORY;
             arg_start = &cmd_buff->_cmd_buffer[i+1];
         }
-    }
-
-    printf("Command: %s\n", cmd_buff->argv[0]);
-    for(int i = 1; i < cmd_buff->argc; i++){
-        printf("Arg: %s\n", cmd_buff->argv[i]);
     }
 
     return OK;
