@@ -83,20 +83,25 @@ int exec_local_cmd_loop()
             continue;
         }else if(rc == ERR_MEMORY){
             fprintf(stderr, CMD_ERR_BUILD_CLIST);
-            // Do something here instead of continuing
+            // Free command_list and set RC
             continue;
         }else if(rc == ERR_CMD_ARGS_BAD){
-            fprintf(stderr, CMD_OR_ARGS_TOO_BIG);
-            // Do something here instead of continuing
+            fprintf(stderr, CMD_OR_ARGS_BAD);
+            // Free command_list and set RC
             continue;
         }else if(rc == ERR_CMD_OR_ARGS_TOO_BIG){
             fprintf(stderr, CMD_OR_ARGS_TOO_BIG);
-            // Do something here instead of continuing
+            // Free command_list and set RC
             continue;
         }
-        
+
         // Debug to print command_list
-        //printf("Number of commands:%d\n", command_list.num);for(int i = 0; i < command_list.num; i++){cmd_buff_t current_cmd = command_list.commands[i];printf("Current command: %s\n", current_cmd.argv[0]);for(int j = 1; j < current_cmd.argc; j++){printf("Arg: %d, %s\n", j, current_cmd.argv[j]);}putchar('\n');}
+        //printf("Number of commands:%d\n", command_list.num);for(int i = 0; i < command_list.num; i++){cmd_buff_t current_cmd = command_list.commands[i];printf("Current command:-%s\n", current_cmd.argv[0]);for(int j = 1; j < current_cmd.argc; j++){printf("Arg: %d-%s\n", j, current_cmd.argv[j]);}putchar('\n');}
+        
+        // TODO:
+        //- Free/Dealloc/Clear command_list, and sub cmd_buff_t here (in function)
+        //- Execute pipeline
+    
     }
     
     free(cmd_buff);
@@ -202,7 +207,12 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     return OK;
 }
 
-
+/*
+Returns:
+    OK
+    ERR_CMD_OR_ARGS_TOO_BIG
+    ERR_CMD_ARGS_BAD
+*/
 int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len){
     if(cmd_buff->argc == 0){
         return (arg_len <= EXE_MAX) ? OK: ERR_CMD_OR_ARGS_TOO_BIG;
@@ -210,8 +220,6 @@ int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len){
     // Does not exceed arg count and arg_len <= arg max size
     return ((cmd_buff->argc + 1 <= CMD_ARGV_MAX) && (arg_len <= ARG_MAX)) ? OK : ERR_CMD_ARGS_BAD;
 }
-
-
 
 /*
 Returns:

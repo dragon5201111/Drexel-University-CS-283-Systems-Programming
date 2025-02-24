@@ -52,6 +52,7 @@ int close_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_list(char *cmd_line, command_list_t *clist);
 int free_cmd_list(command_list_t *cmd_lst);
 int format_cmd_line(char **dest, char *src, int src_len);
+int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len);
 
 //built in command stuff
 typedef enum {
