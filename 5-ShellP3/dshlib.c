@@ -75,8 +75,9 @@ int exec_local_cmd_loop()
 
         flush_or_remove_new_line_buff(cmd_buff);
 
+        rc = build_cmd_list(cmd_buff, &command_list);
 
-        if((rc = build_cmd_list(cmd_buff, &command_list)) != OK){
+        if(rc != OK){
             // TODO: Add setting rc
             print_err_build_cmd_list(rc);
             free_cmd_list(&command_list);
@@ -97,8 +98,8 @@ int exec_local_cmd_loop()
 
 /*
 Returns:
-    OK - if stream was read successfully into buff
-    ERR_MEMORY - if stream was not successfully read into buff
+    OK - if stream was read successfully into cmd_buff
+    ERR_MEMORY - if stream was not successfully read into cmd_buff
 */
 int read_stream_into_buff(char * buff, int max, FILE * stream){
     if (fgets(buff, max, stream) == NULL){
