@@ -13,7 +13,7 @@
 typedef struct cmd_buff
 {
     int  argc;
-    char argv[CMD_ARGV_MAX][SH_CMD_MAX];
+    char *argv[CMD_ARGV_MAX];
     char *_cmd_buffer;
 } cmd_buff_t;
 
@@ -57,6 +57,8 @@ void _print_cmd_list(command_list_t * clist);
 void print_err_build_cmd_list(int rc);
 void flush_or_remove_new_line_buff(char * cmd_buff);
 int read_stream_into_buff(char * cmd_buff, int max, FILE * stream);
+int start_supervisor_and_execute_pipeline(command_list_t *clist);
+void print_pipeline_rc(int);
 
 //built in command stuff
 typedef enum {

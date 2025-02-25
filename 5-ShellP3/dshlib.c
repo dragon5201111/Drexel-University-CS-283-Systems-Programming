@@ -6,7 +6,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
-
+#include <errno.h>
+#include <sys/prctl.h>
+#include <signal.h>
 #include "dshlib.h"
 
 /*
@@ -56,8 +58,7 @@ int exec_local_cmd_loop()
 {
     char *cmd_buff = (char *) malloc(SH_CMD_MAX * sizeof(char));
     int rc = OK;
-    // TODO: Add set rc
-    
+        
     if(cmd_buff == NULL){
         perror(CMD_ERR_MEMORY_INIT);
         return ERR_MEMORY;
@@ -67,10 +68,10 @@ int exec_local_cmd_loop()
     command_list_t command_list;
 
     while(1){
+        printf("After last command, return code is %d\n", rc);
         printf("%s", SH_PROMPT);
         
         if(read_stream_into_buff(cmd_buff, SH_CMD_MAX, stdin) == ERR_MEMORY){
-            perror(CMD_ERR_MEMORY_INIT);
             break;
         }
 
@@ -79,22 +80,121 @@ int exec_local_cmd_loop()
         rc = build_cmd_list(cmd_buff, &command_list);
 
         if(rc != OK){
-            // TODO: Add setting rc
             print_err_build_cmd_list(rc);
             free_cmd_list(&command_list);
             continue;
         }
-        
+
         // Debug to print command_list
-        _print_cmd_list(&command_list);
+        #ifdef DEBUG
+            _print_cmd_list(&command_list);
+        #endif
+
         // TODO:
-        //- Execute pipeline
-        //- Implement RC
+        // Implement RC and set where necessary
+        // Handle pipeline RC, add built-ins (to execute_pipeline), set RC
+        // Print RC after executing pipe line (errors only)
+
+        rc = start_supervisor_and_execute_pipeline(&command_list);
+        print_pipeline_rc(rc);
+
         free_cmd_list(&command_list);
     }
 
     free(cmd_buff);
     return OK;
+}
+
+void print_pipeline_rc(int rc){
+    printf("UNIMPLEMENTED, print return code after PL. Return code of last command was: %d\n", rc);
+}
+
+/*
+Returns:
+    Exit code of last child, or errno on fail
+*/
+int start_supervisor_and_execute_pipeline(command_list_t *clist) {
+    pid_t supervisor = fork();
+    int rc;
+
+    if (supervisor == -1) {
+        perror("Fork supervisor creation failed");
+        exit(errno);
+    }
+
+    if (supervisor == 0) {
+        // Kill children if parent dies
+        prctl(PR_SET_PDEATHSIG, SIGKILL);
+
+        int pipe_line_rc = execute_pipeline(clist);
+        exit(pipe_line_rc);
+    }
+
+    waitpid(supervisor, &rc, 0);
+    return rc;
+}
+
+/*
+Returns:
+    Exit code of last child, or errno on fail
+*/
+int execute_pipeline(command_list_t *clist) {
+    int num_commands = clist->num;
+    int pipes[num_commands - 1][2];  // Array of pipes
+    pid_t pids[num_commands];        // Array to store process IDs
+
+    // Create all necessary pipes
+    for (int i = 0; i < num_commands - 1; i++) {
+        if (pipe(pipes[i]) == -1) {
+            perror("Pipe creation failed");
+            exit(errno);
+        }
+    }
+
+    // Create processes for each command
+    for (int i = 0; i < num_commands; i++) {
+        pids[i] = fork();
+        if (pids[i] == -1) {
+            perror("Forking children of supervisor failed");
+            exit(errno);
+        }
+
+        if (pids[i] == 0) {  // Child process
+            // Kill child if parent dies
+            prctl(PR_SET_PDEATHSIG, SIGKILL);
+
+            // Set up input pipe for all except first process
+            if (i > 0) {
+                dup2(pipes[i-1][0], STDIN_FILENO);
+            }
+
+            if (i < num_commands - 1) {
+                dup2(pipes[i][1], STDOUT_FILENO);
+            }
+
+            for (int j = 0; j < num_commands - 1; j++) {
+                close(pipes[j][0]);
+                close(pipes[j][1]);
+            }
+
+            execvp(clist->commands[i].argv[0], clist->commands[i].argv);
+            exit(errno);
+        }
+    }
+
+    // Parent process: close all pipe ends
+    for (int i = 0; i < num_commands - 1; i++) {
+        close(pipes[i][0]);
+        close(pipes[i][1]);
+    }
+
+    int rc;
+    for (int i = 0; i < num_commands; i++) {
+        waitpid(pids[i], &rc, 0);
+        rc = WEXITSTATUS(rc);
+    }
+
+    return rc;
 }
 
 /*
@@ -178,12 +278,19 @@ Returns:
 int clear_cmd_buff(cmd_buff_t *cmd_buff) {
     if (cmd_buff == NULL) return ERR_MEMORY; 
 
+    // Free the memory for each argument in argv
+    for (int i = 0; i < cmd_buff->argc; i++) {
+        free(cmd_buff->argv[i]);
+    }
+
+    // Free the command buffer
     if (cmd_buff->_cmd_buffer != NULL) {
         free(cmd_buff->_cmd_buffer);
     }
 
     return OK;
 }
+
 
 /*
 Returns:
@@ -281,12 +388,20 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
             if((can_insert = can_insert_cmd_buff_argv(cmd_buff, strlen(arg_start))) != OK){
                 return can_insert;
             }
+            
+            cmd_buff->argv[cmd_buff->argc] = strdup(arg_start);
 
-            strcpy(cmd_buff->argv[cmd_buff->argc++], arg_start);
+            if (cmd_buff->argv[cmd_buff->argc] == NULL) {
+                return ERR_MEMORY;
+            }
+
+            cmd_buff->argc++;
             arg_start = &cmd_buff->_cmd_buffer[i+1];
         }
     }
 
+    // Set last string to null for execvp
+    cmd_buff->argv[cmd_buff->argc] = NULL;
     return OK;
 }
 
