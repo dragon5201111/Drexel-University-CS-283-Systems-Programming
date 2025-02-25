@@ -70,6 +70,7 @@ int exec_local_cmd_loop()
         printf("%s", SH_PROMPT);
         
         if(read_stream_into_buff(cmd_buff, SH_CMD_MAX, stdin) == ERR_MEMORY){
+            perror(CMD_ERR_MEMORY_INIT);
             break;
         }
 
