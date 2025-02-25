@@ -75,9 +75,8 @@ int exec_local_cmd_loop()
 
         flush_or_remove_new_line_buff(cmd_buff);
 
-        rc = build_cmd_list(cmd_buff, &command_list);
 
-        if(rc != OK){
+        if((rc = build_cmd_list(cmd_buff, &command_list)) != OK){
             // TODO: Add setting rc
             print_err_build_cmd_list(rc);
             free_cmd_list(&command_list);
