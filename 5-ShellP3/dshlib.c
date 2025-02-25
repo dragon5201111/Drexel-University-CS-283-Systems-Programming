@@ -55,7 +55,8 @@
 int exec_local_cmd_loop()
 {
     char *cmd_buff = (char *) malloc(SH_CMD_MAX * sizeof(char));
-    int rc = 0;
+    int rc = OK;
+    // TODO: Add set rc
     
     if(cmd_buff == NULL){
         perror(CMD_ERR_MEMORY_INIT);
@@ -68,48 +69,28 @@ int exec_local_cmd_loop()
     while(1){
         printf("%s", SH_PROMPT);
         
-        if (fgets(cmd_buff, SH_CMD_MAX, stdin) == NULL){
-            printf("\n");
+        if(read_stream_into_buff(cmd_buff, SH_CMD_MAX, stdin) == ERR_MEMORY){
             break;
         }
 
-        cmd_buff[strcspn(cmd_buff,"\n")] = '\0';
+        flush_or_remove_new_line_buff(cmd_buff);
 
-        if((rc = build_cmd_list(cmd_buff, &command_list)) == WARN_NO_CMDS){
-            // Set rc
-            fprintf(stderr, CMD_WARN_NO_CMD);
-            continue;
-        }else if(rc == ERR_TOO_MANY_COMMANDS){
-            // Set rc
-            fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
-            continue;
-        }else if(rc == ERR_MEMORY){
-            // Set rc
-            fprintf(stderr, CMD_ERR_BUILD_CLIST);
-            free_cmd_list(&command_list);
-            continue;
-        }else if(rc == ERR_CMD_ARGS_BAD){
-            // Set rc
-            fprintf(stderr, CMD_OR_ARGS_BAD);
-            free_cmd_list(&command_list);
-            continue;
-        }else if(rc == ERR_CMD_OR_ARGS_TOO_BIG){
-            // Set rc
-            fprintf(stderr, CMD_OR_ARGS_TOO_BIG);
+        rc = build_cmd_list(cmd_buff, &command_list);
+
+        if(rc != OK){
+            // TODO: Add setting rc
+            print_err_build_cmd_list(rc);
             free_cmd_list(&command_list);
             continue;
         }
-
+        
         // Debug to print command_list
         _print_cmd_list(&command_list);
-
-        free_cmd_list(&command_list);
         // TODO:
         //- Execute pipeline
         //- Implement RC
-        //- Optimize memory usage (implement with static memory)
+        free_cmd_list(&command_list);
     }
-
 
     free(cmd_buff);
     return OK;
@@ -117,23 +98,46 @@ int exec_local_cmd_loop()
 
 /*
 Returns:
-    OK - on deallocation success
-    ERR_MEMORY - on deallocation failure
+    OK - if stream was read successfully into buff
+    ERR_MEMORY - if stream was not successfully read into buff
 */
-int free_cmd_buff(cmd_buff_t *cmd_buff) {
-    if (cmd_buff == NULL) return ERR_MEMORY; 
-
-    if (cmd_buff->_cmd_buffer != NULL) {
-        free(cmd_buff->_cmd_buffer);
-    }
-
-    for (int i = 0; i < cmd_buff->argc; i++) {
-        if (cmd_buff->argv[i] != NULL) {
-            free(cmd_buff->argv[i]);
-        }
+int read_stream_into_buff(char * buff, int max, FILE * stream){
+    if (fgets(buff, max, stream) == NULL){
+        printf("\n");
+        return ERR_MEMORY;
     }
 
     return OK;
+}
+
+void print_err_build_cmd_list(int rc){
+    switch(rc) {
+        case WARN_NO_CMDS:
+            fprintf(stderr, CMD_WARN_NO_CMD);
+            break;
+        case ERR_TOO_MANY_COMMANDS:
+            fprintf(stderr, CMD_ERR_PIPE_LIMIT, CMD_MAX);
+            break;
+        case ERR_MEMORY:
+            fprintf(stderr, CMD_ERR_BUILD_CLIST);
+            break;
+        case ERR_CMD_ARGS_BAD:
+            fprintf(stderr, CMD_OR_ARGS_BAD);
+            break;
+        case ERR_CMD_OR_ARGS_TOO_BIG:
+            fprintf(stderr, CMD_OR_ARGS_TOO_BIG);
+            break;
+    }
+}
+
+// Flushes stdin on overflow so commands don't flow over to next command
+void flush_or_remove_new_line_buff(char * buff){
+    if (strchr(buff, '\n') == NULL) {
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
+    } else {
+        buff[strcspn(buff, "\n")] = '\0';
+    }
 }
 
 // Debug function to print cmd list
@@ -170,13 +174,29 @@ Returns:
     OK - on deallocation success
     ERR_MEMORY - on deallocation failure
 */
+int clear_cmd_buff(cmd_buff_t *cmd_buff) {
+    if (cmd_buff == NULL) return ERR_MEMORY; 
+
+    if (cmd_buff->_cmd_buffer != NULL) {
+        free(cmd_buff->_cmd_buffer);
+    }
+
+    return OK;
+}
+
+/*
+Returns:
+    OK - on deallocation success
+    ERR_MEMORY - on deallocation failure
+*/
 int free_cmd_list(command_list_t *cmd_lst){
     if(cmd_lst == NULL || cmd_lst->num <= 0) return ERR_MEMORY;
 
     for(int i = 0; i < cmd_lst->num; i++){
-        free_cmd_buff(&cmd_lst->commands[i]);
+        clear_cmd_buff(&cmd_lst->commands[i]);
     }
 
+    cmd_lst->num = 0;
     return OK;
 }
 
@@ -238,7 +258,6 @@ Returns:
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     int cmd_line_len = strlen(cmd_line);
     if(cmd_line_len == 0) return WARN_NO_CMDS;
-
     // Initialize to zero
     cmd_buff->argc = 0;
     
@@ -262,9 +281,7 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
                 return can_insert;
             }
 
-            cmd_buff->argv[cmd_buff->argc++] = strdup(arg_start);
-
-            if(cmd_buff->argv[cmd_buff->argc - 1] == NULL) return ERR_MEMORY;
+            strcpy(cmd_buff->argv[cmd_buff->argc++], arg_start);
             arg_start = &cmd_buff->_cmd_buffer[i+1];
         }
     }
@@ -280,10 +297,9 @@ Returns:
 */
 int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len){
     if(cmd_buff->argc == 0){
-        return (arg_len <= EXE_MAX) ? OK: ERR_CMD_OR_ARGS_TOO_BIG;
+        return (arg_len < EXE_MAX) ? OK: ERR_CMD_OR_ARGS_TOO_BIG;
     }
-    // Does not exceed arg count and arg_len <= arg max size
-    return ((cmd_buff->argc + 1 <= CMD_ARGV_MAX) && (arg_len <= ARG_MAX)) ? OK : ERR_CMD_ARGS_BAD;
+    return ((cmd_buff->argc + 1 <= CMD_ARGV_MAX) && (arg_len < ARG_MAX)) ? OK : ERR_CMD_ARGS_BAD;
 }
 
 /*

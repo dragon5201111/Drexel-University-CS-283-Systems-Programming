@@ -13,7 +13,7 @@
 typedef struct cmd_buff
 {
     int  argc;
-    char *argv[CMD_ARGV_MAX];
+    char argv[CMD_ARGV_MAX][SH_CMD_MAX];
     char *_cmd_buffer;
 } cmd_buff_t;
 
@@ -45,8 +45,8 @@ typedef struct command_list{
 
 //prototypes
 //int alloc_cmd_buff(cmd_buff_t *cmd_buff);
-int free_cmd_buff(cmd_buff_t *cmd_buff);
-//int clear_cmd_buff(cmd_buff_t *cmd_buff);
+//int free_cmd_buff(cmd_buff_t *cmd_buff);
+int clear_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff);
 //int close_cmd_buff(cmd_buff_t *cmd_buff);
 int build_cmd_list(char *cmd_line, command_list_t *clist);
@@ -54,6 +54,9 @@ int free_cmd_list(command_list_t *cmd_lst);
 int format_cmd_line(char **dest, char *src, int src_len);
 int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len);
 void _print_cmd_list(command_list_t * clist);
+void print_err_build_cmd_list(int rc);
+void flush_or_remove_new_line_buff(char * cmd_buff);
+int read_stream_into_buff(char * cmd_buff, int max, FILE * stream);
 
 //built in command stuff
 typedef enum {
@@ -76,7 +79,7 @@ int execute_pipeline(command_list_t *clist);
 #define CMD_WARN_NO_CMD     "warning: no commands provided\n"
 #define CMD_ERR_PIPE_LIMIT  "error: piping limited to %d commands\n"
 #define CMD_ERR_MEMORY_INIT "error: unable to initialize memory for buffers.\n"
-#define CMD_OR_ARGS_TOO_BIG "error: exe or args are too large.\n"
-#define CMD_OR_ARGS_BAD "error: exe or args are invalid.\n"
+#define CMD_OR_ARGS_TOO_BIG "error: exe size is too large.\n"
+#define CMD_OR_ARGS_BAD "error: arg(s) are too large or maximum number of args exceeded.\n"
 #define CMD_ERR_BUILD_CLIST "error: cannot build command list. Unable to allocate memory for command list.\n"
 #endif
