@@ -68,7 +68,6 @@ int exec_local_cmd_loop()
     command_list_t command_list;
 
     while(1){
-        printf("After last command, return code is %d\n", rc);
         printf("%s", SH_PROMPT);
         
         if(read_stream_into_buff(cmd_buff, SH_CMD_MAX, stdin) == ERR_MEMORY){
@@ -86,14 +85,16 @@ int exec_local_cmd_loop()
         }
 
         // Debug to print command_list
-        #ifdef DEBUG
+        #ifdef DSH_DEBUG
             _print_cmd_list(&command_list);
         #endif
 
         // TODO:
-        // Implement RC and set where necessary
+        // Implement RC (built-in) and set where necessary
         // Handle pipeline RC, add built-ins (to execute_pipeline), set RC
         // Print RC after executing pipe line (errors only)
+        // Make sure assignment test cases pass
+        // Add cwd to shell prompt
 
         rc = start_supervisor_and_execute_pipeline(&command_list);
         print_pipeline_rc(rc);
@@ -104,6 +105,7 @@ int exec_local_cmd_loop()
     free(cmd_buff);
     return OK;
 }
+
 
 void print_pipeline_rc(int rc){
     printf("UNIMPLEMENTED, print return code after PL. Return code of last command was: %d\n", rc);
