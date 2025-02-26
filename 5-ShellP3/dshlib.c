@@ -214,6 +214,24 @@ Built_In_Cmds match_command(const char *input){
     return BI_NOT_BI;
 }
 
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds bi_type){
+    switch (bi_type)
+    {
+    case BI_CMD_EXIT:
+        break;
+    case BI_CMD_DRAGON:
+        break;
+    case BI_CMD_CD:
+        break;
+    case BI_CMD_RC:
+        break;
+    default:
+        break;
+    }
+
+    return BI_EXECUTED;
+}
+
 /*
 Returns:
     OK - if stream was read successfully into cmd_buff
