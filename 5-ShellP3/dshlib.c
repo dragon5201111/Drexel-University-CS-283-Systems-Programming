@@ -10,6 +10,7 @@
 #include <sys/prctl.h>
 #include <signal.h>
 #include "dshlib.h"
+#include "dragon.h"
 
 /*
  * Implement your exec_local_cmd_loop function by building a loop that prompts the 
@@ -95,7 +96,7 @@ int exec_local_cmd_loop()
         // Print RC after executing pipe line (errors only)
         // Make sure assignment test cases pass
         // Add cwd to shell prompt
-
+        
         rc = start_supervisor_and_execute_pipeline(&command_list);
         print_pipeline_rc(rc);
 
@@ -197,6 +198,20 @@ int execute_pipeline(command_list_t *clist) {
     }
 
     return rc;
+}
+
+    
+Built_In_Cmds match_command(const char *input){
+    if(strcmp(input, EXIT_CMD) == 0){
+        return BI_CMD_EXIT;
+    }else if(strcmp(input, DRAGON_CMD) == 0){
+        return BI_CMD_DRAGON;
+    }else if(strcmp(input, CD_CMD) == 0){
+        return BI_CMD_CD;
+    }else if(strcmp(input, RC_CMD) == 0){
+        return BI_CMD_RC;
+    }
+    return BI_NOT_BI;
 }
 
 /*
