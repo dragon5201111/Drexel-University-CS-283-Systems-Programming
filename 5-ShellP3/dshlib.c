@@ -180,6 +180,8 @@ int execute_pipeline(command_list_t *clist) {
                 close(pipes[j][1]);
             }
 
+            
+
             execvp(clist->commands[i].argv[0], clist->commands[i].argv);
             exit(errno);
         }
@@ -200,7 +202,21 @@ int execute_pipeline(command_list_t *clist) {
     return rc;
 }
 
-    
+/*
+Returns:
+    errno upon failure, BI_EXECUTED if success
+*/
+Built_In_Cmds exec_cd(cmd_buff_t * cmd){
+    // Ignore no arguments
+    if(strlen(cmd->argv[1]) == 0) return BI_EXECUTED;
+
+    return (chdir(cmd->argv[1]) == -1) ? errno : BI_EXECUTED;
+}
+
+/*
+Returns:
+    BI_NOT_BI if no built-in is matched, otherwise appropriate builtin enum
+*/ 
 Built_In_Cmds match_command(const char *input){
     if(strcmp(input, EXIT_CMD) == 0){
         return BI_CMD_EXIT;
@@ -218,13 +234,17 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds bi_type){
     switch (bi_type)
     {
     case BI_CMD_EXIT:
+        exit(EXIT_SC);
         break;
     case BI_CMD_DRAGON:
+        print_dragon();
         break;
     case BI_CMD_CD:
-        break;
+        return exec_cd(cmd);
     case BI_CMD_RC:
+        printf("UNIMPLEMNTED! PRINT RC!\n");
         break;
+    // Ignore anything else
     default:
         break;
     }
