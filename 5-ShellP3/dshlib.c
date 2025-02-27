@@ -76,7 +76,7 @@ int exec_local_cmd_loop()
             break;
         }
 
-        // Fix seg fault with command "f ff f ff f f f f f  f f f f f f"
+        // Fix seg fault with command "f ff f ff f f f f f  f f f f f f" if command is first command
         flush_or_remove_new_line_buff(cmd_buff);
 
         rc = build_cmd_list(cmd_buff, &command_list);
@@ -394,7 +394,6 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff) {
     if (cmd_buff->_cmd_buffer != NULL) {
         free(cmd_buff->_cmd_buffer);
     }
-
     return OK;
 }
 
