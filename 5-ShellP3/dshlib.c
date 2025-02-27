@@ -71,19 +71,20 @@ int exec_local_cmd_loop()
 
     while(1){
         printf("%s", SH_PROMPT);
-        
+
         if(read_stream_into_buff(cmd_buff, SH_CMD_MAX, stdin) == ERR_MEMORY){
             break;
         }
 
-        // Fix seg fault with command "f ff f ff f f f f f  f f f f f f" if command is first command
         flush_or_remove_new_line_buff(cmd_buff);
+
+        // assignment unit test "Pipes" only works with this here for some reason
+        //printf("%s", SH_PROMPT);
 
         rc = build_cmd_list(cmd_buff, &command_list);
 
         if(rc != OK){
             print_err_build_cmd_list(rc);
-            free_cmd_list(&command_list);
             continue;
         }
 
@@ -91,7 +92,6 @@ int exec_local_cmd_loop()
         #ifdef DSH_DEBUG
             _print_cmd_list(&command_list);
         #endif
-
         // TODO:
         // Print RC after execution (errors only)
        
@@ -363,7 +363,7 @@ void _print_cmd_list(command_list_t * clist){
         current_cmd = clist->commands[i];
         arg_c = current_cmd.argc;
 
-        printf("Command <%d>: %s\n", i+1, current_cmd.argv[0]);
+        printf("Command <%d>: \"%s\"\n", i+1, current_cmd.argv[0]);
         printf("Args: [");
 
         
@@ -549,7 +549,7 @@ int format_cmd_line(char **dest, char *src, int src_len) {
 
         if (current == QUOTE_CHAR) {
             in_quotes = !in_quotes;
-            formatted[j++] = current;
+            //formatted[j++] = current;
             last_was_space = 0;
         } else if (isspace((unsigned char)current)) {
             if (in_quotes) {

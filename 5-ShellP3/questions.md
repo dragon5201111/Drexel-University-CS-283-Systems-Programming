@@ -10,8 +10,8 @@ When you call dup2, the new_fd points to the old_fd, but you should close old_fd
 
 3. Your shell recognizes built-in commands (cd, exit, dragon). Unlike external commands, built-in commands do not require execvp(). Why is cd implemented as a built-in rather than an external command? What challenges would arise if cd were implemented as an external process?
 
-_answer here_
+The cd command is implemented as a built-in command because it directly modifies the current working directory of the shell process. If cd were an external command, it would run in a separate child process, which could only change the working directory for that child process and not affect the parent shell.
 
 4. Currently, your shell supports a fixed number of piped commands (CMD_MAX). How would you modify your implementation to allow an arbitrary number of piped commands while still handling memory allocation efficiently? What trade-offs would you need to consider?
 
-_answer here_
+I would modify my implementation by changing the command_list_t structure to contain a cmd_buff_t * instead of a statically sized array. To do this you would need to consider the fact you have a variable number of piped commands, so dynamic memory allocation would be required to manage the growing list. I would implement a llinked-list to store the commands, ensuring that memory is allocated and deallocated as needed. This would allow flexibility in supporting an arbitrary number of piped commands. However, you'd need to handle reallocations and ensure proper memory cleanup to avoid memory leaks. Additionally, the dynamic memory allocation could introduce slight performance overhead compared to a fixed-size array, especially when reallocating or managing memory for a large number of commands.
