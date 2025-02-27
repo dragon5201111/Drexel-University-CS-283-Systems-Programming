@@ -91,4 +91,8 @@ int execute_pipeline(command_list_t *clist);
 #define CMD_OR_ARGS_TOO_BIG "error: exe size is too large.\n"
 #define CMD_OR_ARGS_BAD "error: arg(s) are too large or maximum number of args exceeded.\n"
 #define CMD_ERR_BUILD_CLIST "error: cannot build command list. Unable to allocate memory for command list.\n"
+#define CMD_ACCESS_DENIED "error: access denied.\n"
+#define CMD_NOT_DIR "error: not a directory.\n"
+#define CMD_NO_FILE_DIR "error: no such file or directory.\n"
+#define CMD_ERR_MEM "error: not enough space/cannot allocate memory.\n"
 #endif

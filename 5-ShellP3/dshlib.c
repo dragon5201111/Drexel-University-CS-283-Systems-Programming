@@ -76,6 +76,7 @@ int exec_local_cmd_loop()
             break;
         }
 
+        // Fix seg fault with command "f ff f ff f f f f f  f f f f f f"
         flush_or_remove_new_line_buff(cmd_buff);
 
         rc = build_cmd_list(cmd_buff, &command_list);
@@ -99,6 +100,13 @@ int exec_local_cmd_loop()
 
         if(clist_has_no_io_redirection_and_built_in(bi_type, &command_list)){
             cmd_rc = exec_built_in_cmd(&first_cmd, bi_type, cmd_rc);
+            
+            // Clean-up and exit loop
+            if(cmd_rc == BI_CMD_EXIT){
+                free_cmd_list(&command_list);
+                break;
+            }
+
         }else{
             cmd_rc = start_supervisor_and_execute_pipeline(&command_list);
         }
@@ -112,8 +120,23 @@ int exec_local_cmd_loop()
     return OK;
 }
 
-void print_exec_rc(int rc){
-    printf("UNIMPLEMENTED, print return code after PL. Return code of last command was: %d\n", rc);
+void print_exec_rc(int cmd_rc){
+    switch (cmd_rc)
+    {
+    case EACCES:
+        printf(CMD_ACCESS_DENIED);
+        break;
+    case ENOTDIR:
+        printf(CMD_NOT_DIR);
+        break;
+    case ENOENT:
+        printf(CMD_NO_FILE_DIR);
+        break;
+    case ENOMEM:
+        printf(CMD_ERR_MEM);
+    default:
+        break;
+    }
 }
 
 /*
@@ -255,13 +278,15 @@ Built_In_Cmds match_command(const char *input){
 
 /*
 Returns:
-    BI_EXECUTED on success, otherwise errno on BI_CMD_CD (if fail)
+    BI_EXECUTED on success
+    BI_CMD_EXIT when bi_type is BI_CMD_EXIT
+    Otherwise, errno (from cd) if failure, else, BI_EXECUTED
 */
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds bi_type, int rc){
     switch (bi_type)
     {
     case BI_CMD_EXIT:
-        exit(EXIT_SC);
+        return BI_CMD_EXIT;
         break;
     case BI_CMD_DRAGON:
         print_dragon();
