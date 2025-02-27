@@ -35,6 +35,7 @@ typedef struct command_list{
 #define DRAGON_CMD "dragon"
 #define CD_CMD "cd"
 #define RC_CMD "rc"
+#define RC_FORMAT "%d\n"
 
 //Standard Return Codes
 #define OK                       0
@@ -61,7 +62,7 @@ void print_err_build_cmd_list(int rc);
 void flush_or_remove_new_line_buff(char * cmd_buff);
 int read_stream_into_buff(char * cmd_buff, int max, FILE * stream);
 int start_supervisor_and_execute_pipeline(command_list_t *clist);
-void print_pipeline_rc(int);
+void print_exec_rc(int);
 
 //built in command stuff
 typedef enum {
@@ -73,8 +74,9 @@ typedef enum {
     BI_EXECUTED,
 } Built_In_Cmds;
 Built_In_Cmds match_command(const char *input); 
-Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds bi_type);
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds bi_type, int rc);
 Built_In_Cmds exec_cd(cmd_buff_t * cmd);
+Built_In_Cmds clist_has_no_io_redirection_and_built_in(Built_In_Cmds bi_rc, command_list_t * command_list);
 
 //main execution context
 int exec_local_cmd_loop();

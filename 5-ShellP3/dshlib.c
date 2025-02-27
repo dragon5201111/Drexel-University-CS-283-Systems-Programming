@@ -59,6 +59,7 @@ int exec_local_cmd_loop()
 {
     char *cmd_buff = (char *) malloc(SH_CMD_MAX * sizeof(char));
     int rc = OK;
+    int cmd_rc = OK;
         
     if(cmd_buff == NULL){
         perror(CMD_ERR_MEMORY_INIT);
@@ -91,15 +92,19 @@ int exec_local_cmd_loop()
         #endif
 
         // TODO:
-        // Implement RC (built-in) and set where necessary
-        // Handle pipeline RC, add built-ins (to execute_pipeline), set RC
-        // Print RC after executing pipe line (errors only)
-        // Make sure assignment test cases pass
-        // Add cwd to shell prompt
-        
-        rc = start_supervisor_and_execute_pipeline(&command_list);
-        print_pipeline_rc(rc);
+        // Print RC after execution (errors only)
+       
+        cmd_buff_t first_cmd = command_list.commands[0];
+        Built_In_Cmds bi_type = match_command(first_cmd.argv[0]);
 
+        if(clist_has_no_io_redirection_and_built_in(bi_type, &command_list)){
+            cmd_rc = exec_built_in_cmd(&first_cmd, bi_type, cmd_rc);
+        }else{
+            cmd_rc = start_supervisor_and_execute_pipeline(&command_list);
+        }
+        
+        // Implement print_exec_rc
+        print_exec_rc(cmd_rc);
         free_cmd_list(&command_list);
     }
 
@@ -107,8 +112,7 @@ int exec_local_cmd_loop()
     return OK;
 }
 
-
-void print_pipeline_rc(int rc){
+void print_exec_rc(int rc){
     printf("UNIMPLEMENTED, print return code after PL. Return code of last command was: %d\n", rc);
 }
 
@@ -118,7 +122,7 @@ Returns:
 */
 int start_supervisor_and_execute_pipeline(command_list_t *clist) {
     pid_t supervisor = fork();
-    int rc;
+    int supervisor_rc;
 
     if (supervisor == -1) {
         perror("Fork supervisor creation failed");
@@ -133,8 +137,12 @@ int start_supervisor_and_execute_pipeline(command_list_t *clist) {
         exit(pipe_line_rc);
     }
 
-    waitpid(supervisor, &rc, 0);
-    return rc;
+    waitpid(supervisor, &supervisor_rc, 0);
+    if (WIFEXITED(supervisor_rc)) {
+        return WEXITSTATUS(supervisor_rc);
+    } else {
+        return errno;
+    }
 }
 
 /*
@@ -180,10 +188,15 @@ int execute_pipeline(command_list_t *clist) {
                 close(pipes[j][1]);
             }
 
-            
+            cmd_buff_t cmd_to_exec = clist->commands[i];
+            Built_In_Cmds bi_type;
 
-            execvp(clist->commands[i].argv[0], clist->commands[i].argv);
-            exit(errno);
+            if((bi_type = match_command(cmd_to_exec.argv[0])) != BI_NOT_BI){
+                exit(exec_built_in_cmd(&cmd_to_exec, bi_type, errno));
+            }else{
+                execvp(cmd_to_exec.argv[0], cmd_to_exec.argv);
+                exit(errno);
+            }
         }
     }
 
@@ -193,13 +206,24 @@ int execute_pipeline(command_list_t *clist) {
         close(pipes[i][1]);
     }
 
-    int rc;
+    int pipeline_rc = OK;
+
     for (int i = 0; i < num_commands; i++) {
-        waitpid(pids[i], &rc, 0);
-        rc = WEXITSTATUS(rc);
+        waitpid(pids[i], &pipeline_rc, 0);
+        if (WIFEXITED(pipeline_rc)) {
+            pipeline_rc = WEXITSTATUS(pipeline_rc);  // Save last child's exit status
+        }
     }
 
-    return rc;
+    exit(pipeline_rc);
+}
+
+/*
+Returns:
+    0 if clist is not of size 1, and bi_rc does not match to a Built_In_Cmds enum, 1 otherwise
+*/
+Built_In_Cmds clist_has_no_io_redirection_and_built_in(Built_In_Cmds bi_rc, command_list_t * clist){
+    return bi_rc != BI_NOT_BI && clist->num == 1;
 }
 
 /*
@@ -208,8 +232,7 @@ Returns:
 */
 Built_In_Cmds exec_cd(cmd_buff_t * cmd){
     // Ignore no arguments
-    if(strlen(cmd->argv[1]) == 0) return BI_EXECUTED;
-
+    if(cmd->argc != 2) return BI_EXECUTED;
     return (chdir(cmd->argv[1]) == -1) ? errno : BI_EXECUTED;
 }
 
@@ -230,7 +253,11 @@ Built_In_Cmds match_command(const char *input){
     return BI_NOT_BI;
 }
 
-Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds bi_type){
+/*
+Returns:
+    BI_EXECUTED on success, otherwise errno on BI_CMD_CD (if fail)
+*/
+Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds bi_type, int rc){
     switch (bi_type)
     {
     case BI_CMD_EXIT:
@@ -242,7 +269,7 @@ Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds bi_type){
     case BI_CMD_CD:
         return exec_cd(cmd);
     case BI_CMD_RC:
-        printf("UNIMPLEMNTED! PRINT RC!\n");
+        printf(RC_FORMAT, rc);
         break;
     // Ignore anything else
     default:
