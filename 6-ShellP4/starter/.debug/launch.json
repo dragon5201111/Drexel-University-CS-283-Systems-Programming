@@ -1,17 +1,13 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
+            "name": "(gdb) 6-RShell",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/6-ShellP4/starter/dsh",
-            "args": [],
+            "program": "${workspaceFolder}/6-RShell/starter/dsh",
+            "args": [""],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/6-RShell/starter",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -26,9 +22,8 @@
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
                 }
-            ]
+            ],
+            "preLaunchTask": "Build 6-RShell"
         }
-
-
     ]
 }
