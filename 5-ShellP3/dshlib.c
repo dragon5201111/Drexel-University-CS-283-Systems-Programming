@@ -196,9 +196,34 @@ int execute_pipeline(command_list_t *clist) {
         if (pids[i] == 0) {  // Child process
             // Kill child if parent dies
             prctl(PR_SET_PDEATHSIG, SIGKILL);
+            cmd_buff_t cmd_to_exec = clist->commands[i];
+
+            if (cmd_to_exec.input_file != NULL) {
+                int in_fd = open(cmd_to_exec.input_file, O_RDONLY);
+                if (in_fd == -1) {
+                    exit(errno);
+                }
+                dup2(in_fd, STDIN_FILENO);
+                close(in_fd);
+            }
+
+            if (cmd_to_exec.output_file != NULL) {
+                int out_fd;
+                if(cmd_to_exec.append_mode){
+                    out_fd = open(cmd_to_exec.output_file, O_WRONLY | O_APPEND | O_CREAT, 0644);
+                }else{
+                    out_fd = open(cmd_to_exec.output_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+                }
+                if (out_fd == -1) {
+                    exit(errno);
+                }
+                dup2(out_fd, STDOUT_FILENO);
+                close(out_fd);
+            }
 
             // Set up input pipe for all except first process
             if (i > 0) {
+
                 dup2(pipes[i-1][0], STDIN_FILENO);
             }
 
@@ -211,7 +236,6 @@ int execute_pipeline(command_list_t *clist) {
                 close(pipes[j][1]);
             }
 
-            cmd_buff_t cmd_to_exec = clist->commands[i];
             Built_In_Cmds bi_type;
 
             if((bi_type = match_command(cmd_to_exec.argv[0])) != BI_NOT_BI){
@@ -383,7 +407,7 @@ Returns:
     ERR_MEMORY - on deallocation failure
 */
 int clear_cmd_buff(cmd_buff_t *cmd_buff) {
-    if (cmd_buff == NULL) return ERR_MEMORY; 
+    if (cmd_buff == NULL) return ERR_MEMORY;
 
     // Free the memory for each argument in argv
     for (int i = 0; i < cmd_buff->argc; i++) {
@@ -393,6 +417,14 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff) {
     // Free the command buffer
     if (cmd_buff->_cmd_buffer != NULL) {
         free(cmd_buff->_cmd_buffer);
+    }
+
+    if (cmd_buff->output_file != NULL) {
+        free(cmd_buff->output_file);
+    }
+
+    if (cmd_buff->input_file != NULL) {
+        free(cmd_buff->input_file);
     }
     return OK;
 }
@@ -474,7 +506,10 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     if(cmd_line_len == 0) return WARN_NO_CMDS;
     // Initialize to zero
     cmd_buff->argc = 0;
-    
+    cmd_buff->input_file = NULL;
+    cmd_buff->output_file = NULL;
+    cmd_buff->append_mode = 0;
+
     // Copy formatted cmd_line
     int formatted_cmd_line_len;
     if((formatted_cmd_line_len = format_cmd_line(&cmd_buff->_cmd_buffer, cmd_line, cmd_line_len)) ==  ERR_MEMORY) 
@@ -485,15 +520,53 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
 
     // Copy args into cmd_buff
     char * arg_start = cmd_buff->_cmd_buffer;
-    int can_insert = 0;
+    int can_insert = 0, inp_redirect = 0, out_redirect = 0, append_mode = 0;
     
     for(int i = 0; i <= formatted_cmd_line_len; i++){
         if(cmd_buff->_cmd_buffer[i] == NULL_BYTE){
-            // Debug to print arg
-            //printf("Arg:%s\n", arg_start);
+
+            if(inp_redirect){
+                cmd_buff->input_file = strdup(arg_start);
+                if(cmd_buff->input_file == NULL) return ERR_MEMORY;
+                break;
+            }
+
+            if(out_redirect){
+                cmd_buff->output_file = strdup(arg_start);
+                if(cmd_buff->output_file == NULL) return ERR_MEMORY;
+                break;
+            }
+
+            if(append_mode){
+                cmd_buff->output_file = strdup(arg_start);
+                cmd_buff->append_mode = 1;
+                if(cmd_buff->output_file == NULL) return ERR_MEMORY;
+                break;
+            }
+
+            if(strcmp(arg_start, OUTPUT_CHAR) == 0){
+                out_redirect = 1;
+                arg_start = &cmd_buff->_cmd_buffer[i+1];
+                continue;
+            }
+
+            if(strcmp(arg_start, INPUT_CHAR) == 0){
+                inp_redirect = 1;
+                arg_start = &cmd_buff->_cmd_buffer[i+1];
+                continue;
+            }
+
+            if(strcmp(arg_start, APPEND_CHAR) == 0){
+                append_mode = 1;
+                arg_start = &cmd_buff->_cmd_buffer[i+1];
+                continue;
+            }
+            
+            
             if((can_insert = can_insert_cmd_buff_argv(cmd_buff, strlen(arg_start))) != OK){
                 return can_insert;
             }
+
             
             cmd_buff->argv[cmd_buff->argc] = strdup(arg_start);
 

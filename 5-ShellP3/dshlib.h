@@ -15,6 +15,9 @@ typedef struct cmd_buff
     int  argc;
     char *argv[CMD_ARGV_MAX];
     char *_cmd_buffer;
+    char *input_file;  // extra credit, stores input redirection file (for `<`)
+    char *output_file; // extra credit, stores output redirection file (for `>`)
+    int append_mode; // extra credit, sets append mode fomr output_file
 } cmd_buff_t;
 
 typedef struct command_list{
@@ -28,6 +31,9 @@ typedef struct command_list{
 #define PIPE_STRING "|"
 #define QUOTE_CHAR '"'
 #define NULL_BYTE '\0'
+#define INPUT_CHAR "<"
+#define OUTPUT_CHAR ">"
+#define APPEND_CHAR ">>"
 
 #define SH_PROMPT "dsh3> "
 #define EXIT_CMD "exit"

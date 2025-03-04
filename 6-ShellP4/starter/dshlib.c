@@ -524,6 +524,7 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     
     for(int i = 0; i <= formatted_cmd_line_len; i++){
         if(cmd_buff->_cmd_buffer[i] == NULL_BYTE){
+
             if(inp_redirect){
                 cmd_buff->input_file = strdup(arg_start);
                 if(cmd_buff->input_file == NULL) return ERR_MEMORY;
