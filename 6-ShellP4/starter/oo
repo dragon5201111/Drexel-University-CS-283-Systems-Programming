@@ -1,4 +1,4 @@
-make: Nothing to be done for 'all'.
+fpp
 bats
 dragon.c
 dragon.h
@@ -6,9 +6,9 @@ dsh
 dsh_cli.c
 dshlib.c
 dshlib.h
-foot
-HƒøÿtHƒÄÃ€
+foo
 makefile
+oo
 rsh_cli.c
 rshlib.h
 rsh_server.c
