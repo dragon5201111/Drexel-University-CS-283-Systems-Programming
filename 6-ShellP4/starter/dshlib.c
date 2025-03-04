@@ -383,7 +383,7 @@ Returns:
     ERR_MEMORY - on deallocation failure
 */
 int clear_cmd_buff(cmd_buff_t *cmd_buff) {
-    if (cmd_buff == NULL) return ERR_MEMORY; 
+    if (cmd_buff == NULL) return ERR_MEMORY;
 
     // Free the memory for each argument in argv
     for (int i = 0; i < cmd_buff->argc; i++) {
@@ -393,6 +393,14 @@ int clear_cmd_buff(cmd_buff_t *cmd_buff) {
     // Free the command buffer
     if (cmd_buff->_cmd_buffer != NULL) {
         free(cmd_buff->_cmd_buffer);
+    }
+
+    if (cmd_buff->output_file != NULL) {
+        free(cmd_buff->output_file);
+    }
+
+    if (cmd_buff->input_file != NULL) {
+        free(cmd_buff->input_file);
     }
     return OK;
 }
@@ -474,8 +482,10 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     if(cmd_line_len == 0) return WARN_NO_CMDS;
     // Initialize to zero
     cmd_buff->argc = 0;
-    
-    
+    cmd_buff->input_file = NULL;
+    cmd_buff->output_file = NULL;
+    cmd_buff->append_mode = false;
+
     // Copy formatted cmd_line
     int formatted_cmd_line_len;
     if((formatted_cmd_line_len = format_cmd_line(&cmd_buff->_cmd_buffer, cmd_line, cmd_line_len)) ==  ERR_MEMORY) 

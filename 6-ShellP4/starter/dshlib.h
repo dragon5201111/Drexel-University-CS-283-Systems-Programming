@@ -38,6 +38,8 @@ typedef struct command_list{
 #define PIPE_CHAR   '|'
 #define PIPE_STRING "|"
 #define QUOTE_CHAR '"'
+#define INPUT_CHAR "<"
+#define OUTPUT_CHAR ">"
 #define NULL_BYTE '\0'
 
 #define SH_PROMPT       "dsh4> "

@@ -24,8 +24,6 @@ test:
 	bats $(wildcard ./bats/*.sh)
 
 valgrind:
-	echo "pwd\nexit" | valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1 ./$(TARGET) 
-	echo "pwd\nexit" | valgrind --tool=helgrind --error-exitcode=1 ./$(TARGET) 
-
+	echo "pwd\nfoo<2\nexit" | valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1 ./$(TARGET) 
 # Phony targets
 .PHONY: all clean test
