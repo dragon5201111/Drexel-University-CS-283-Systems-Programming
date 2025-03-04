@@ -323,3 +323,88 @@ EOF
     # Assertions
     [ "$status" -eq 0 ]
 }
+
+@test "< Redirection works" {
+    res=$(cat < dshlib.c | wc -l)
+    run "./dsh" <<EOF
+cat < dshlib.c | wc -l
+EOF
+
+    # Strip all whitespace (spaces, tabs, newlines) from the output
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+
+    # Expected output with all whitespace removed for easier matching
+    expected_output="${res}dsh3>dsh3>dsh3>cmdloopreturned0"
+
+    # These echo commands will help with debugging and will only print
+    #if the test fails
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    # Check exact match
+    [ "$stripped_output" = "$expected_output" ]
+
+    # Assertions
+    [ "$status" -eq 0 ]
+}
+
+@test "> Redirection works" {
+    run "./dsh" <<EOF
+echo "bro code" > test
+cat test
+EOF
+
+    # Strip all whitespace (spaces, tabs, newlines) from the output
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+
+    cat_test="bro code"
+    cat_test=$(echo "$cat_test" | tr -d '[:space:]')
+
+    # Expected output with all whitespace removed for easier matching
+    expected_output="dsh3>${cat_test}dsh3>dsh3>dsh3>dsh3>dsh3>cmdloopreturned0"
+    rm -rf test
+    # These echo commands will help with debugging and will only print
+    #if the test fails
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    # Check exact match
+    [ "$stripped_output" = "$expected_output" ]
+
+    # Assertions
+    [ "$status" -eq 0 ]
+}
+
+@test ">> Redirection works" {
+    run "./dsh" <<EOF
+echo "bro code" > test
+echo "foo bar" >> test
+cat test
+EOF
+
+    # Strip all whitespace (spaces, tabs, newlines) from the output
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+
+    cat_test="bro code foo bar"
+    cat_test=$(echo "$cat_test" | tr -d '[:space:]')
+
+    # Expected output with all whitespace removed for easier matching
+    expected_output="dsh3>dsh3>dsh3>${cat_test}dsh3>dsh3>dsh3>dsh3>dsh3>dsh3>dsh3>cmdloopreturned0"
+    rm -rf test
+    # These echo commands will help with debugging and will only print
+    #if the test fails
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    # Check exact match
+    [ "$stripped_output" = "$expected_output" ]
+
+    # Assertions
+    [ "$status" -eq 0 ]
+}
