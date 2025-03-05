@@ -81,6 +81,7 @@ int read_stream_into_buff(char * cmd_buff, int max, FILE * stream);
 int start_supervisor_and_execute_pipeline(command_list_t *clist);
 void print_exec_rc(int);
 int strings_are_equal(char *, char*);
+int cmd_buff_has_no_args(cmd_buff_t * cmd_buff);
 
 
 //built in command stuff

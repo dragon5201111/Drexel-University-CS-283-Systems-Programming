@@ -121,7 +121,6 @@ int exec_local_cmd_loop()
 }
 
 int strings_are_equal(char * str_one, char* str_two){
-    if(str_one == 0x0 || str_two == 0x0) return 0;
     return strcmp(str_one, str_two) == 0;
 }
 
@@ -579,11 +578,14 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
                 if(set_input_output_file_cmd_buff(cmd_buff, arg_start, redirect_flag) != OK)
                     return ERR_MEMORY;
                 
-                break;
+                redirect_flag = R_NONE;
+                set_arg_to_next_string_in_cmd_buff(&arg_start, cmd_buff, i);
+                continue;
             }
             
             // Flag was set
             if(check_if_arg_is_redirect_and_set_flag(arg_start, &redirect_flag) != R_NONE){
+                if(cmd_buff_has_no_args(cmd_buff)) return WARN_NO_CMDS;
                 set_arg_to_next_string_in_cmd_buff(&arg_start, cmd_buff, i);
                 continue;
             }
@@ -607,6 +609,9 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     return OK;
 }
 
+int cmd_buff_has_no_args(cmd_buff_t * cmd_buff){
+    return cmd_buff->argc == 0;
+}
 /*
 Returns:
     OK
@@ -614,7 +619,7 @@ Returns:
     ERR_CMD_ARGS_BAD
 */
 int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len){
-    if(cmd_buff->argc == 0){
+    if(cmd_buff_has_no_args(cmd_buff)){
         return (arg_len < EXE_MAX) ? OK: ERR_CMD_OR_ARGS_TOO_BIG;
     }
     return ((cmd_buff->argc + 1 <= CMD_ARGV_MAX) && (arg_len < ARG_MAX)) ? OK : ERR_CMD_ARGS_BAD;
