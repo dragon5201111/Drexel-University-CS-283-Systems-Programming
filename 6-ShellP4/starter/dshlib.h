@@ -38,9 +38,9 @@ typedef struct command_list{
 #define PIPE_CHAR   '|'
 #define PIPE_STRING "|"
 #define QUOTE_CHAR '"'
-#define INPUT_CHAR "<"
-#define OUTPUT_CHAR ">"
-#define APPEND_CHAR ">>"
+#define REDIR_INPUT_STRING "<"
+#define REDIR_OUTPUT_STRING ">"
+#define REDIR_APPEND_STRING ">>"
 #define NULL_BYTE '\0'
 
 #define SH_PROMPT       "dsh4> "
@@ -80,6 +80,8 @@ void flush_or_remove_new_line_buff(char * cmd_buff);
 int read_stream_into_buff(char * cmd_buff, int max, FILE * stream);
 int start_supervisor_and_execute_pipeline(command_list_t *clist);
 void print_exec_rc(int);
+int strings_are_equal(char *, char*);
+
 
 //built in command stuff
 typedef enum {
@@ -96,6 +98,18 @@ Built_In_Cmds match_command(const char *input);
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds bi_type, int rc);
 Built_In_Cmds exec_cd(cmd_buff_t * cmd);
 Built_In_Cmds clist_has_no_io_redirection_and_built_in(Built_In_Cmds bi_rc, command_list_t * command_list);
+
+typedef enum {
+    R_NONE,
+    R_APPEND,
+    R_OUTPUT,
+    R_INPUT
+}Redirect_Flag;
+Redirect_Flag check_if_arg_is_redirect_and_set_flag(char * arg_start, Redirect_Flag * redirect_flag);
+int redirect_flag_was_set(Redirect_Flag redirect_flag);
+int set_input_output_file_cmd_buff(cmd_buff_t * cmd_buff, char * arg_start, Redirect_Flag redirect_flag);
+void set_arg_to_next_string_in_cmd_buff(char ** arg_start, cmd_buff_t * cmd_buff, int i);
+
 
 //main execution context
 int exec_local_cmd_loop();

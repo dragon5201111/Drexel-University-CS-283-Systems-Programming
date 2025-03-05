@@ -120,6 +120,10 @@ int exec_local_cmd_loop()
     return OK;
 }
 
+int strings_are_equal(char * str_one, char* str_two){
+    return strcmp(str_one, str_two) == 0;
+}
+
 void print_exec_rc(int cmd_rc){
     switch (cmd_rc)
     {
@@ -288,13 +292,13 @@ Returns:
     BI_NOT_BI if no built-in is matched, otherwise appropriate builtin enum
 */ 
 Built_In_Cmds match_command(const char *input){
-    if(strcmp(input, EXIT_CMD) == 0){
+    if(strings_are_equal(input, EXIT_CMD)){
         return BI_CMD_EXIT;
-    }else if(strcmp(input, DRAGON_CMD) == 0){
+    }else if(strings_are_equal(input, DRAGON_CMD)){
         return BI_CMD_DRAGON;
-    }else if(strcmp(input, CD_CMD) == 0){
+    }else if(strings_are_equal(input, CD_CMD)){
         return BI_CMD_CD;
-    }else if(strcmp(input, RC_CMD) == 0){
+    }else if(strings_are_equal(input, RC_CMD)){
         return BI_CMD_RC;
     }
     return BI_NOT_BI;
@@ -493,6 +497,51 @@ int build_cmd_list(char *cmd_line, command_list_t *clist){
     return OK;
 }
 
+Redirect_Flag check_if_arg_is_redirect_and_set_flag(char * arg_start, Redirect_Flag * redirect_flag){
+    if(strings_are_equal(arg_start, REDIR_APPEND_STRING)){
+        *redirect_flag = R_APPEND;
+    }else if(strings_are_equal(arg_start, REDIR_OUTPUT_STRING)){
+        *redirect_flag = R_OUTPUT;
+    }else if (strings_are_equal(arg_start, REDIR_INPUT_STRING)){
+        *redirect_flag = R_INPUT;
+    }
+    
+    return *redirect_flag;
+}
+
+
+int redirect_flag_was_set(Redirect_Flag redirect_flag){
+    return (redirect_flag == R_APPEND || redirect_flag == R_INPUT || redirect_flag == R_OUTPUT);
+}
+
+int set_input_output_file_cmd_buff(cmd_buff_t * cmd_buff, char * arg_start, Redirect_Flag redirect_flag){
+    switch (redirect_flag)
+    {
+    case R_APPEND:
+        cmd_buff->output_file = strdup(arg_start);
+        cmd_buff->append_mode = 1;
+        if(cmd_buff->output_file == NULL) return ERR_MEMORY;
+        break;
+    case R_INPUT:
+        cmd_buff->input_file = strdup(arg_start);
+        if(cmd_buff->input_file == NULL) return ERR_MEMORY;
+        break;
+    case R_OUTPUT:
+        cmd_buff->output_file = strdup(arg_start);
+        if(cmd_buff->output_file == NULL) return ERR_MEMORY;
+        break;
+    default:
+        return ERR_MEMORY;
+    }
+    return OK;
+}
+
+
+void set_arg_to_next_string_in_cmd_buff(char ** arg_start, cmd_buff_t * cmd_buff, int i){
+    *arg_start = &cmd_buff->_cmd_buffer[i+1];
+}
+
+
 /*
 Returns:
     OK - if cmd_buff was built successfully
@@ -520,45 +569,21 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
 
     // Copy args into cmd_buff
     char * arg_start = cmd_buff->_cmd_buffer;
-    int can_insert = 0, inp_redirect = 0, out_redirect = 0, append_mode = 0;
+    int can_insert = 0;
+    Redirect_Flag redirect_flag = R_NONE;
     
     for(int i = 0; i <= formatted_cmd_line_len; i++){
         if(cmd_buff->_cmd_buffer[i] == NULL_BYTE){
-
-            if(inp_redirect){
-                cmd_buff->input_file = strdup(arg_start);
-                if(cmd_buff->input_file == NULL) return ERR_MEMORY;
+            if(redirect_flag_was_set(redirect_flag)){
+                if(set_input_output_file_cmd_buff(cmd_buff, arg_start, redirect_flag) != OK)
+                    return ERR_MEMORY;
+                
                 break;
             }
-
-            if(out_redirect){
-                cmd_buff->output_file = strdup(arg_start);
-                if(cmd_buff->output_file == NULL) return ERR_MEMORY;
-                break;
-            }
-
-            if(append_mode){
-                cmd_buff->output_file = strdup(arg_start);
-                cmd_buff->append_mode = 1;
-                if(cmd_buff->output_file == NULL) return ERR_MEMORY;
-                break;
-            }
-
-            if(strcmp(arg_start, OUTPUT_CHAR) == 0){
-                out_redirect = 1;
-                arg_start = &cmd_buff->_cmd_buffer[i+1];
-                continue;
-            }
-
-            if(strcmp(arg_start, INPUT_CHAR) == 0){
-                inp_redirect = 1;
-                arg_start = &cmd_buff->_cmd_buffer[i+1];
-                continue;
-            }
-
-            if(strcmp(arg_start, APPEND_CHAR) == 0){
-                append_mode = 1;
-                arg_start = &cmd_buff->_cmd_buffer[i+1];
+            
+            // Flag was set
+            if(check_if_arg_is_redirect_and_set_flag(arg_start, &redirect_flag) != R_NONE){
+                set_arg_to_next_string_in_cmd_buff(&arg_start, cmd_buff, i);
                 continue;
             }
             
@@ -567,15 +592,12 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
                 return can_insert;
             }
 
-            
             cmd_buff->argv[cmd_buff->argc] = strdup(arg_start);
 
-            if (cmd_buff->argv[cmd_buff->argc] == NULL) {
-                return ERR_MEMORY;
-            }
+            if (cmd_buff->argv[cmd_buff->argc] == NULL) return ERR_MEMORY;
 
             cmd_buff->argc++;
-            arg_start = &cmd_buff->_cmd_buffer[i+1];
+            set_arg_to_next_string_in_cmd_buff(&arg_start, cmd_buff, i);
         }
     }
 
