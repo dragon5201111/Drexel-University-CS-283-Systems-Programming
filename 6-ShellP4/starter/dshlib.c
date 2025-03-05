@@ -121,6 +121,7 @@ int exec_local_cmd_loop()
 }
 
 int strings_are_equal(char * str_one, char* str_two){
+    if(str_one == 0x0 || str_two == 0x0) return 0;
     return strcmp(str_one, str_two) == 0;
 }
 
