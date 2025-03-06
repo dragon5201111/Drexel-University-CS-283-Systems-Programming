@@ -120,7 +120,7 @@ int exec_local_cmd_loop()
     return OK;
 }
 
-int strings_are_equal(char * str_one, char* str_two){
+int strings_are_equal(const char * str_one, const char* str_two){
     return strcmp(str_one, str_two) == 0;
 }
 

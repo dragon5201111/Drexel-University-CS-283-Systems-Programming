@@ -80,7 +80,7 @@ void flush_or_remove_new_line_buff(char * cmd_buff);
 int read_stream_into_buff(char * cmd_buff, int max, FILE * stream);
 int start_supervisor_and_execute_pipeline(command_list_t *clist);
 void print_exec_rc(int);
-int strings_are_equal(char *, char*);
+int strings_are_equal(const char *, const char*);
 int cmd_buff_has_no_args(cmd_buff_t * cmd_buff);
 
 

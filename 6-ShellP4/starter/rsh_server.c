@@ -125,6 +125,7 @@ int boot_server(char *ifaces, int port){
     
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
+    // Set IP address by ifaces in sockaddr_in struct
     if(inet_pton(AF_INET, ifaces, &server_addr.sin_addr) <= 0){
         return ERR_RDSH_COMMUNICATION;
     }
@@ -251,7 +252,11 @@ int exec_client_requests(int cli_socket) {
  *           we were unable to send the EOF character. 
  */
 int send_message_eof(int cli_socket){
-    return WARN_RDSH_NOT_IMPL;
+    if(send(cli_socket, &RDSH_EOF_CHAR, 1, 0) != 1){
+        return ERR_RDSH_COMMUNICATION;
+    }
+
+    return OK;
 }
 
 /*
@@ -273,7 +278,16 @@ int send_message_eof(int cli_socket){
  *           we were unable to send the message followed by the EOF character. 
  */
 int send_message_string(int cli_socket, char *buff){
-    return WARN_RDSH_NOT_IMPL;
+    // Send message
+    if(send(cli_socket, buff, strlen(buff), 0) == -1){
+        return ERR_RDSH_COMMUNICATION;
+    }
+
+    // Send EOF character
+    if(send_message_eof(cli_socket) != OK) 
+        return ERR_RDSH_COMMUNICATION;
+
+    return OK;
 }
 
 
