@@ -115,8 +115,36 @@ int stop_server(int svr_socket){
  * 
  */
 int boot_server(char *ifaces, int port){
-    return WARN_RDSH_NOT_IMPL;
+    struct sockaddr_in server_addr;
+    int server_socket_fd;
+
+    // Create server socket
+    if((server_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+        return ERR_RDSH_COMMUNICATION;
+    }
+    
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    if(inet_pton(AF_INET, ifaces, &server_addr.sin_addr) <= 0){
+        return ERR_RDSH_COMMUNICATION;
+    }
+
+    int enable_reuse_addr = 1;
+    setsockopt(server_socket_fd, SOL_SOCKET, SO_REUSEADDR, &enable_reuse_addr, sizeof(int));
+
+    // Bind socket to IP address & port
+    if(bind(server_socket_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr)) == -1){
+        return ERR_RDSH_COMMUNICATION;
+    }
+
+    // Listen for incoming connections
+    if(listen(server_socket_fd, RDSH_SVR_BACKLOG_MAX) == -1){
+        return ERR_RDSH_COMMUNICATION;
+    }
+
+    return server_socket_fd;
 }
+
 
 /*
  * process_cli_requests(svr_socket)

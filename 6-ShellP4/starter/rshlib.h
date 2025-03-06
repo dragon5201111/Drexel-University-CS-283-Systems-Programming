@@ -16,6 +16,7 @@
 
 //constants for buffer sizes
 #define RDSH_COMM_BUFF_SZ       (1024*64)   //64K
+#define RDSH_SVR_BACKLOG_MAX 20
 #define STOP_SERVER_SC          200         //returned from pipeline excution
                                             //if the command is to stop the
                                             //server.  See documentation for 
