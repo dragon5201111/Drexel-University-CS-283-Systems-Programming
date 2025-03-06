@@ -133,7 +133,7 @@ int boot_server(char *ifaces, int port){
     int enable_reuse_addr = 1;
     setsockopt(server_socket_fd, SOL_SOCKET, SO_REUSEADDR, &enable_reuse_addr, sizeof(int));
 
-    // Bind socket to IP address & port
+    // Bind socket to IP address & port; associate specific IP address and port number with server socket
     if(bind(server_socket_fd, (const struct sockaddr *) &server_addr, sizeof(server_addr)) == -1){
         return ERR_RDSH_COMMUNICATION;
     }
