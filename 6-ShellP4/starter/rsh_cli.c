@@ -91,8 +91,45 @@
  *      
  */
 int exec_remote_cmd_loop(char *address, int port)
-{
-    return WARN_RDSH_NOT_IMPL;
+{   
+    // Initialize buffers for sending and receiving data
+    char * send_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
+    char * receive_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
+    ssize_t bytes_read;
+
+    if(send_buffer == NULL || receive_buffer == NULL) return ERR_MEMORY;
+    
+    int client_socket_fd;
+
+    // Establish connection with server
+    if((client_socket_fd = start_client(address, port)) == ERR_RDSH_CLIENT)
+        return ERR_RDSH_CLIENT;
+
+    while(1){
+        printf(SH_PROMPT);
+
+        // Get command from stdin
+        if(fgets(send_buffer, sizeof(send_buffer), stdin) != NULL){
+            // Failed to send
+            if(send(client_socket_fd, send_buffer, strlen(send_buffer)+1, 0) == -1)
+                return client_cleanup(client_socket_fd, send_buffer, receive_buffer, ERR_RDSH_COMMUNICATION);
+            
+            // Read response from server
+            while ((bytes_read = recv(client_socket_fd, (char *)receive_buffer, RDSH_COMM_BUFF_SZ, 0)) > 0){
+                // Communication error
+                if(bytes_read < 0)
+                    return client_cleanup(client_socket_fd, send_buffer, receive_buffer, ERR_RDSH_COMMUNICATION);
+                // Server might be down, so break out of loop
+                if(bytes_read == 0)
+                    return client_cleanup(client_socket_fd, send_buffer, receive_buffer, ERR_RDSH_CLIENT);
+
+
+                // We received some bytes
+            }
+        }
+    }
+
+    return OK;
 }
 
 /*

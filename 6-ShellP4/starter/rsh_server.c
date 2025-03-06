@@ -181,16 +181,18 @@ int boot_server(char *ifaces, int port){
  *                connections, and negative values terminate the server. 
  * 
  */
-int process_cli_requests(int svr_socket){
+int process_cli_requests(int server_socket){
     int client_socket_fd;
-    char recv_buffer[RDSH_COMM_BUFF_SZ];
-    char send_buffer[RDSH_COMM_BUFF_SZ];
-    
+
     while(1){
 
+        if((client_socket_fd = accept(server_socket, NULL, NULL)) == -1)
+            return ERR_RDSH_COMMUNICATION;
+
+        // TODO: Implement below...
     }
 
-    return WARN_RDSH_NOT_IMPL;
+    return OK_EXIT;
 }
 
 /*
