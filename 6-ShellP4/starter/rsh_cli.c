@@ -119,7 +119,19 @@ int exec_remote_cmd_loop(char *address, int port)
  * 
  */
 int start_client(char *server_ip, int port){
-    return WARN_RDSH_NOT_IMPL;
+    struct sockaddr_in server_addr;
+    int client_socket_fd;
+
+    // Create client socket
+    if((client_socket_fd = create_af_inet_tcp_socket(server_ip, port, &server_addr, ERR_RDSH_CLIENT)) == ERR_RDSH_CLIENT)
+        return ERR_RDSH_CLIENT;
+
+    // Establish connection with server
+    if(connect(client_socket_fd, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0){
+        return ERR_RDSH_CLIENT;
+    }
+
+    return client_socket_fd;
 }
 
 /*

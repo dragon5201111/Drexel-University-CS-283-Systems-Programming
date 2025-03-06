@@ -58,6 +58,7 @@ int start_server(char *ifaces, int port, int is_threaded){
     svr_socket = boot_server(ifaces, port);
     if (svr_socket < 0){
         int err_code = svr_socket;  //server socket will carry error code
+        perror("Error booting server");
         return err_code;
     }
 
@@ -119,16 +120,8 @@ int boot_server(char *ifaces, int port){
     int server_socket_fd;
 
     // Create server socket
-    if((server_socket_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+    if((server_socket_fd = create_af_inet_tcp_socket(ifaces, port, &server_addr, ERR_RDSH_COMMUNICATION)) == ERR_RDSH_COMMUNICATION) 
         return ERR_RDSH_COMMUNICATION;
-    }
-    
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
-    // Set IP address by ifaces in sockaddr_in struct
-    if(inet_pton(AF_INET, ifaces, &server_addr.sin_addr) <= 0){
-        return ERR_RDSH_COMMUNICATION;
-    }
 
     int enable_reuse_addr = 1;
     setsockopt(server_socket_fd, SOL_SOCKET, SO_REUSEADDR, &enable_reuse_addr, sizeof(int));
@@ -189,6 +182,14 @@ int boot_server(char *ifaces, int port){
  * 
  */
 int process_cli_requests(int svr_socket){
+    int client_socket_fd;
+    char recv_buffer[RDSH_COMM_BUFF_SZ];
+    char send_buffer[RDSH_COMM_BUFF_SZ];
+    
+    while(1){
+
+    }
+
     return WARN_RDSH_NOT_IMPL;
 }
 

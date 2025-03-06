@@ -3,13 +3,15 @@
 
 #include "dshlib.h"
 
+#include <sys/socket.h>
+#include <arpa/inet.h>
 //common remote shell client and server constants and definitions
 
 
 //Constants for communication
 //Note that these should work fine in a local VM but you will likely have
 //to change the port number if you are working on tux.
-#define RDSH_DEF_PORT           1234        //Default port #
+#define RDSH_DEF_PORT           4545        //Default port #
 #define RDSH_DEF_SVR_INTFACE    "0.0.0.0"   //Default start all interfaces
 #define RDSH_DEF_CLI_CONNECT    "127.0.0.1" //Default server is running on
                                             //localhost 127.0.0.1
@@ -67,6 +69,10 @@ int send_message_string(int cli_socket, char *buff);
 int process_cli_requests(int svr_socket);
 int exec_client_requests(int cli_socket);
 int rsh_execute_pipeline(int socket_fd, command_list_t *clist);
+
+// Shared protoypes
+int create_af_inet_tcp_socket(char * ip_address, int port, struct sockaddr_in *socket_addr, int error);
+
 
 // SEE COMMENTS IN THE CODE, THESE ARE OPTIONAL IN CASE YOU WANT TO PROVIDE
 // SUPPORT FOR BUILT-IN FUNCTIONS DIFFERENTLY 

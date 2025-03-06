@@ -16,6 +16,7 @@ typedef struct command
     char args[ARG_MAX];
 } command_t;
 
+#include <stdio.h>
 #include <stdbool.h>
 
 typedef struct cmd_buff
