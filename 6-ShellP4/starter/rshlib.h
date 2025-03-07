@@ -30,7 +30,8 @@
 //use an end of stream marker.  Since rsh is a "shell" program we will be using
 //ascii code 0x04, which is commonly used as the end-of-file (EOF) character in
 //linux based systems. 
-static const char RDSH_EOF_CHAR = 0x04;    
+static const char RDSH_EOF_CHAR = 0x04;
+#define BUFFER_END_IS_CHAR(buffer, bytes_received, c) (buffer[bytes_received - 1] == c)
 
 //rdsh specific error codes for functions
 #define ERR_RDSH_COMMUNICATION  -50     //Used for communication errors
@@ -51,6 +52,7 @@ static const char RDSH_EOF_CHAR = 0x04;
 #define RCMD_MSG_SVR_STOP_REQ   "client requested server to stop, stopping...\n"
 #define RCMD_MSG_SVR_EXEC_REQ   "rdsh-exec:  %s\n"
 #define RCMD_MSG_SVR_RC_CMD     "rdsh-exec:  rc = %d\n"
+
 
 //client prototypes for rsh_cli.c - - see documentation for each function to
 //see what they do

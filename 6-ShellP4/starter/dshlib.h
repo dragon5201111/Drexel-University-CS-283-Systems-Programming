@@ -46,6 +46,7 @@ typedef struct command_list{
 
 #define SH_PROMPT       "dsh4> "
 #define EXIT_CMD        "exit"
+#define EXIT_CMD_SERVER "stop-server"
 #define RC_SC           99
 #define EXIT_SC         100
 #define DRAGON_CMD "dragon"

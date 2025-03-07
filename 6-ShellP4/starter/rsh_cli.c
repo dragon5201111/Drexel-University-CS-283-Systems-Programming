@@ -13,7 +13,6 @@
 
 
 
-
 /*
  * exec_remote_cmd_loop(server_ip, port)
  *      server_ip:  a string in ip address format, indicating the servers IP
@@ -93,44 +92,76 @@
 int exec_remote_cmd_loop(char *address, int port)
 {   
     // Initialize buffers for sending and receiving data
-    char * send_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
-    char * receive_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
+    char *send_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
+    char *receive_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
     ssize_t bytes_read;
 
-    if(send_buffer == NULL || receive_buffer == NULL) return ERR_MEMORY;
+    if (send_buffer == NULL || receive_buffer == NULL) {
+        free(send_buffer);
+        free(receive_buffer);
+        return ERR_MEMORY;
+    }
     
-    int client_socket_fd;
+    int client_socket_fd, is_end_of_stream;
 
     // Establish connection with server
-    if((client_socket_fd = start_client(address, port)) == ERR_RDSH_CLIENT)
+    client_socket_fd = start_client(address, port);
+    if (client_socket_fd == ERR_RDSH_CLIENT) {
+        free(send_buffer);
+        free(receive_buffer);
         return ERR_RDSH_CLIENT;
+    }
 
-    while(1){
+    while (1) {
         printf(SH_PROMPT);
 
         // Get command from stdin
-        if(fgets(send_buffer, sizeof(send_buffer), stdin) != NULL){
-            // Failed to send
-            if(send(client_socket_fd, send_buffer, strlen(send_buffer)+1, 0) == -1)
+        if (fgets(send_buffer, RDSH_COMM_BUFF_SZ, stdin) != NULL) {
+            size_t send_buffer_len = strlen(send_buffer);
+            // Get rid of newline
+            send_buffer[send_buffer_len - 1] = NULL_BYTE;
+
+            if (send(client_socket_fd, send_buffer, send_buffer_len + 1, 0) == -1) {
+                printf(CMD_ERR_RDSH_COMM);
                 return client_cleanup(client_socket_fd, send_buffer, receive_buffer, ERR_RDSH_COMMUNICATION);
+            }
+
+            // Client wanted to exited
+            if(strings_are_equal(EXIT_CMD, send_buffer) || strings_are_equal(EXIT_CMD_SERVER, send_buffer)){
+                return client_cleanup(client_socket_fd, send_buffer, receive_buffer, OK);
+            }
             
             // Read response from server
-            while ((bytes_read = recv(client_socket_fd, (char *)receive_buffer, RDSH_COMM_BUFF_SZ, 0)) > 0){
+            while ((bytes_read = recv(client_socket_fd, receive_buffer, RDSH_COMM_BUFF_SZ, 0)) > 0) {
                 // Communication error
-                if(bytes_read < 0)
+                if (bytes_read < 0) {
+                    printf(CMD_ERR_RDSH_COMM);
                     return client_cleanup(client_socket_fd, send_buffer, receive_buffer, ERR_RDSH_COMMUNICATION);
+                }
+
                 // Server might be down, so break out of loop
-                if(bytes_read == 0)
+                if (bytes_read == 0) {
+                    printf(RCMD_SERVER_EXITED);
                     return client_cleanup(client_socket_fd, send_buffer, receive_buffer, ERR_RDSH_CLIENT);
+                }
 
+                // We received some bytes, check if end of stream
+                is_end_of_stream = BUFFER_END_IS_CHAR(receive_buffer, bytes_read, RDSH_EOF_CHAR);
+                if (is_end_of_stream) {
+                    receive_buffer[bytes_read - 1] = '\0';
+                }
 
-                // We received some bytes
+                printf("%.*s\n", (int)bytes_read, receive_buffer);
+
+                if (is_end_of_stream)
+                    break;
             }
         }
     }
 
-    return OK;
+    return client_cleanup(client_socket_fd, send_buffer, receive_buffer, OK);
 }
+
 
 /*
  * start_client(server_ip, port)

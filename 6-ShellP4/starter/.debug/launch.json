@@ -5,7 +5,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/6-RShell/starter/dsh",
-            "args": [""],
+            "args": ["-s"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/6-RShell/starter",
             "environment": [],
