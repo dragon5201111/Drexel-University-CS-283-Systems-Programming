@@ -274,6 +274,7 @@ int exec_client_requests(int client_socket_fd) {
         }
 
         if(is_end_of_stream){
+            // TODO: Implement built-ins, format buffer, etc.
             // Temporary echo
             send_message_string(client_socket_fd, receive_buffer);
         }
