@@ -81,7 +81,7 @@ int exec_local_cmd_loop()
         // assignment unit test "Pipes" only works with this here for some reason
         //printf("%s", SH_PROMPT);
 
-        rc = build_cmd_list(cmd_buff, &command_list);
+        rc = build_cmd_list(cmd_buff, &command_list, NULL_BYTE);
 
         if(rc != OK){
             print_err_build_cmd_list(rc);
@@ -459,7 +459,7 @@ Returns:
     ERR_MEMORY - On allocation error
     OK - Command list was built successfully
 */
-int build_cmd_list(char *cmd_line, command_list_t *clist){
+int build_cmd_list(char *cmd_line, command_list_t *clist, char arg_delimitter){
     // Empty command line
     int cmd_line_len = strlen(cmd_line);
     if(cmd_line_len == 0) return WARN_NO_CMDS;
@@ -479,7 +479,7 @@ int build_cmd_list(char *cmd_line, command_list_t *clist){
     char * command_token = strtok(cmd_line, PIPE_STRING);
     while(command_token != NULL){        
        
-        if((rc_build_cmd_buff = build_cmd_buff(command_token,  &clist->commands[num_commands])) == WARN_NO_CMDS){
+        if((rc_build_cmd_buff = build_cmd_buff(command_token,  &clist->commands[num_commands], arg_delimitter)) == WARN_NO_CMDS){
             return WARN_NO_CMDS;
         }else if(rc_build_cmd_buff == ERR_MEMORY){
             return ERR_MEMORY;
@@ -550,19 +550,20 @@ Returns:
     ERR_CMD_OR_ARGS_TOO_BIG - exe size exceeds maximum
     ERR_CMD_ARGS_BAD - arg count is too large or arg size exceeds maximum
 */
-int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
+int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff, char arg_delimitter){
     int cmd_line_len = strlen(cmd_line);
     if(cmd_line_len == 0) return WARN_NO_CMDS;
     // Initialize to zero
+    cmd_buff->_cmd_buffer = (char *) malloc(sizeof(char) * strlen(cmd_line) + 1);
+    if(cmd_buff->_cmd_buffer == NULL) return ERR_MEMORY;
+    
     cmd_buff->argc = 0;
     cmd_buff->input_file = NULL;
     cmd_buff->output_file = NULL;
     cmd_buff->append_mode = 0;
 
     // Copy formatted cmd_line
-    int formatted_cmd_line_len;
-    if((formatted_cmd_line_len = format_cmd_line(&cmd_buff->_cmd_buffer, cmd_line, cmd_line_len)) ==  ERR_MEMORY) 
-        return ERR_MEMORY;
+    int formatted_cmd_line_len = format_cmd_line(cmd_buff->_cmd_buffer, cmd_line, cmd_line_len, arg_delimitter);
 
     // Debug to print after formatting
     //printf("After formatting:%s, Length:%d\n", cmd_buff->_cmd_buffer, formatted_cmd_line_len);
@@ -573,7 +574,7 @@ int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff){
     Redirect_Flag redirect_flag = R_NONE;
     
     for(int i = 0; i <= formatted_cmd_line_len; i++){
-        if(cmd_buff->_cmd_buffer[i] == NULL_BYTE){
+        if(cmd_buff->_cmd_buffer[i] == arg_delimitter){
             if(redirect_flag_was_set(redirect_flag)){
                 if(set_input_output_file_cmd_buff(cmd_buff, arg_start, redirect_flag) != OK)
                     return ERR_MEMORY;
@@ -627,19 +628,14 @@ int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len){
 
 /*
 Returns:
-    ERR_MEMORY on any memory issues
-    Destination size on success
+    Destination size
 */
-int format_cmd_line(char **dest, char *src, int src_len) {
+int format_cmd_line(char *dest, char *src, int src_len, char arg_delimitter) {
     int start = 0;
     while (start < src_len && isspace(src[start])) start++;
 
     int end = src_len - 1;
     while (end > start && isspace(src[end])) end--;
-
-    int max_len = end - start + 2;
-    char *formatted = (char *)malloc(max_len);
-    if (!formatted) return ERR_MEMORY;
 
     int i = start, j = 0;
     int in_quotes = 0;
@@ -654,21 +650,20 @@ int format_cmd_line(char **dest, char *src, int src_len) {
             last_was_space = 0;
         } else if (isspace((unsigned char)current)) {
             if (in_quotes) {
-                formatted[j++] = current;
+                dest[j++] = current;
             } else if (!last_was_space) {
                 // Delimitter for args
-                formatted[j++] = NULL_BYTE;
+                dest[j++] = arg_delimitter;
                 last_was_space = 1;
             }
         } else {
-            formatted[j++] = current;
+            dest[j++] = current;
             last_was_space = 0;
         }
         i++;
     }
 
-    formatted[j] = '\0';
-    *dest = formatted;
+    dest[j] = '\0';
     return j;
 }
 

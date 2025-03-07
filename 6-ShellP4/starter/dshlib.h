@@ -70,11 +70,11 @@ typedef struct command_list{
 //int alloc_cmd_buff(cmd_buff_t *cmd_buff);
 //int free_cmd_buff(cmd_buff_t *cmd_buff);
 int clear_cmd_buff(cmd_buff_t *cmd_buff);
-int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff);
+int build_cmd_buff(char *cmd_line, cmd_buff_t *cmd_buff, char arg_delimitter);
 //int close_cmd_buff(cmd_buff_t *cmd_buff);
-int build_cmd_list(char *cmd_line, command_list_t *clist);
+int build_cmd_list(char *cmd_line, command_list_t *clist, char arg_delimitter);
 int free_cmd_list(command_list_t *cmd_lst);
-int format_cmd_line(char **dest, char *src, int src_len);
+int format_cmd_line(char *dest, char *src, int src_len, char arg_delimitter);
 int can_insert_cmd_buff_argv(cmd_buff_t *cmd_buff, int arg_len);
 void _print_cmd_list(command_list_t * clist);
 void print_err_build_cmd_list(int rc);

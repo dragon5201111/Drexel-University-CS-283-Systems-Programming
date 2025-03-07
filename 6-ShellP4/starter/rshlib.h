@@ -31,7 +31,6 @@
 //ascii code 0x04, which is commonly used as the end-of-file (EOF) character in
 //linux based systems. 
 static const char RDSH_EOF_CHAR = 0x04;
-#define BUFFER_END_IS_CHAR(buffer, bytes_received, c) (buffer[bytes_received - 1] == c)
 
 //rdsh specific error codes for functions
 #define ERR_RDSH_COMMUNICATION  -50     //Used for communication errors
@@ -59,7 +58,7 @@ static const char RDSH_EOF_CHAR = 0x04;
 int start_client(char *address, int port);
 int client_cleanup(int cli_socket, char *cmd_buff, char *rsp_buff, int rc);
 int exec_remote_cmd_loop(char *address, int port);
-    
+void print_response_from_server(ssize_t bytes_read, char receive_buffer[]);
 
 //server prototypes for rsh_server.c - see documentation for each function to
 //see what they do
@@ -72,9 +71,10 @@ int process_cli_requests(int server_socket);
 int exec_client_requests(int cli_socket);
 int rsh_execute_pipeline(int socket_fd, command_list_t *clist);
 
-// Shared protoypes
+// Shared protoypes & Defines
+#define BUFFER_END_IS_CHAR(buffer, bytes_received, c) (buffer[bytes_received - 1] == c)
 int create_af_inet_tcp_socket(char * ip_address, int port, struct sockaddr_in *socket_addr, int error);
-
+void set_last_character_of_buffer(char buffer[], int size, char character);
 
 // SEE COMMENTS IN THE CODE, THESE ARE OPTIONAL IN CASE YOU WANT TO PROVIDE
 // SUPPORT FOR BUILT-IN FUNCTIONS DIFFERENTLY 

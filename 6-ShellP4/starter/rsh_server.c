@@ -251,12 +251,16 @@ int process_cli_requests(int server_socket){
  *                or receive errors. 
  */
 int exec_client_requests(int client_socket_fd) {
-    char * send_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
-    char * receive_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
+    char *receive_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
+
+    if(receive_buffer == NULL){
+        return ERR_MEMORY;
+    }
+
     ssize_t bytes_read;
     int is_end_of_stream;
 
-    while ((bytes_read = recv(client_socket_fd, (char *)receive_buffer, RDSH_COMM_BUFF_SZ, 0)) > 0){
+    while ((bytes_read = recv(client_socket_fd, receive_buffer, RDSH_COMM_BUFF_SZ, 0)) > 0){
         if(bytes_read < 0)
             return ERR_RDSH_COMMUNICATION;
 
@@ -266,24 +270,15 @@ int exec_client_requests(int client_socket_fd) {
         is_end_of_stream = BUFFER_END_IS_CHAR(receive_buffer, bytes_read, NULL_BYTE);
 
         if(is_end_of_stream){
-            receive_buffer[bytes_read - 1] = NULL_BYTE;
+            set_last_character_of_buffer(receive_buffer, bytes_read, NULL_BYTE);
         }
 
         if(is_end_of_stream){
             // Temporary echo
-            if(strings_are_equal(EXIT_CMD, receive_buffer))
-                break;
-            if(strings_are_equal(EXIT_CMD_SERVER, receive_buffer)){
-                free(send_buffer);
-                free(receive_buffer);
-                return OK_EXIT;
-            }
-
             send_message_string(client_socket_fd, receive_buffer);
         }
     } 
 
-    free(send_buffer);
     free(receive_buffer);
     return OK;
 }

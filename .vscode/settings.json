@@ -2,6 +2,7 @@
     "files.associations": {
         "string.h": "c",
         "sstream": "c",
-        "random": "cpp"
+        "random": "cpp",
+        "rshlib.h": "c"
     }
 }

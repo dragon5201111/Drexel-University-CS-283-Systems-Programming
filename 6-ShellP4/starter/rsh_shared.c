@@ -1,6 +1,7 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include "rshlib.h"
+#include <stdlib.h>
 
 
 /*
@@ -26,4 +27,8 @@ int create_af_inet_tcp_socket(char * ip_address, int port, struct sockaddr_in *s
     }
 
     return socket_fd;
+}
+
+void set_last_character_of_buffer(char buffer[], int size, char character){
+    buffer[size - 1] = character;
 }

@@ -94,22 +94,20 @@ int exec_remote_cmd_loop(char *address, int port)
     // Initialize buffers for sending and receiving data
     char *send_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
     char *receive_buffer = (char *) malloc(sizeof(char) * RDSH_COMM_BUFF_SZ);
+
+    int send_buffer_len = 0;
+    int client_socket_fd = -1, is_end_of_stream;
     ssize_t bytes_read;
 
     if (send_buffer == NULL || receive_buffer == NULL) {
-        free(send_buffer);
-        free(receive_buffer);
-        return ERR_MEMORY;
+        return client_cleanup(client_socket_fd, send_buffer, receive_buffer,ERR_MEMORY);
     }
-    
-    int client_socket_fd, is_end_of_stream;
+
 
     // Establish connection with server
     client_socket_fd = start_client(address, port);
     if (client_socket_fd == ERR_RDSH_CLIENT) {
-        free(send_buffer);
-        free(receive_buffer);
-        return ERR_RDSH_CLIENT;
+        return client_cleanup(client_socket_fd, send_buffer, receive_buffer, ERR_RDSH_CLIENT);
     }
 
     while (1) {
@@ -117,18 +115,13 @@ int exec_remote_cmd_loop(char *address, int port)
 
         // Get command from stdin
         if (fgets(send_buffer, RDSH_COMM_BUFF_SZ, stdin) != NULL) {
-            size_t send_buffer_len = strlen(send_buffer);
             // Get rid of newline
-            send_buffer[send_buffer_len - 1] = NULL_BYTE;
+            send_buffer_len = strlen(send_buffer);
+            set_last_character_of_buffer(send_buffer, send_buffer_len, NULL_BYTE);
 
             if (send(client_socket_fd, send_buffer, send_buffer_len + 1, 0) == -1) {
                 printf(CMD_ERR_RDSH_COMM);
                 return client_cleanup(client_socket_fd, send_buffer, receive_buffer, ERR_RDSH_COMMUNICATION);
-            }
-
-            // Client wanted to exited
-            if(strings_are_equal(EXIT_CMD, send_buffer) || strings_are_equal(EXIT_CMD_SERVER, send_buffer)){
-                return client_cleanup(client_socket_fd, send_buffer, receive_buffer, OK);
             }
             
             // Read response from server
@@ -148,10 +141,10 @@ int exec_remote_cmd_loop(char *address, int port)
                 // We received some bytes, check if end of stream
                 is_end_of_stream = BUFFER_END_IS_CHAR(receive_buffer, bytes_read, RDSH_EOF_CHAR);
                 if (is_end_of_stream) {
-                    receive_buffer[bytes_read - 1] = '\0';
+                    set_last_character_of_buffer(receive_buffer, bytes_read, NULL_BYTE);
                 }
 
-                printf("%.*s\n", (int)bytes_read, receive_buffer);
+                print_response_from_server(bytes_read, receive_buffer);
 
                 if (is_end_of_stream)
                     break;
@@ -238,4 +231,8 @@ int client_cleanup(int cli_socket, char *cmd_buff, char *rsp_buff, int rc){
 
     //Echo the return value that was passed as a parameter
     return rc;
+}
+
+void print_response_from_server(ssize_t bytes_read, char receive_buffer[]){
+    printf("%.*s\n", (int)bytes_read, receive_buffer);
 }
