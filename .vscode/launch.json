@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/6-ShellP4/starter/dsh",
-            "args": ["-s"],
+            "args": ["-c"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

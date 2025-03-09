@@ -119,6 +119,10 @@ int exec_remote_cmd_loop(char *address, int port)
             send_buffer_len = strlen(send_buffer);
             set_last_character_of_buffer(send_buffer, send_buffer_len, NULL_BYTE);
 
+            if(strings_are_equal(send_buffer, EXIT_CMD)){
+                return client_cleanup(client_socket_fd, send_buffer, receive_buffer, OK);
+            }
+
             if (send(client_socket_fd, send_buffer, send_buffer_len + 1, 0) == -1) {
                 printf(CMD_ERR_RDSH_COMM);
                 return client_cleanup(client_socket_fd, send_buffer, receive_buffer, ERR_RDSH_COMMUNICATION);

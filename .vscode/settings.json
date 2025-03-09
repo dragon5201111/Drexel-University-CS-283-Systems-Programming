@@ -5,6 +5,7 @@
         "random": "cpp",
         "rshlib.h": "c",
         "stdio.h": "c",
-        "ctype.h": "c"
+        "ctype.h": "c",
+        "unistd.h": "c"
     }
 }

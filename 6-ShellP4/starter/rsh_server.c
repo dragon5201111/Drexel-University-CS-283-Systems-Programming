@@ -265,7 +265,7 @@ int exec_client_requests(int client_socket_fd) {
     command_list_t command_list;
 
     int is_end_of_stream;
-    int rc;
+    int return_code;
 
     while ((bytes_read = recv(client_socket_fd, receive_buffer, RDSH_COMM_BUFF_SZ, 0)) > 0){
         if(bytes_read < 0)
@@ -281,10 +281,9 @@ int exec_client_requests(int client_socket_fd) {
         }
 
         if(is_end_of_stream){
-            // TODO: Implement built-ins, format buffer, etc.
-            // Temporary echo
-            rc = build_cmd_list(receive_buffer, &command_list, NULL_BYTE);
-            if(rc != OK){
+
+            return_code = build_cmd_list(receive_buffer, &command_list, NULL_BYTE);
+            if(return_code != OK){
                 // Indicate error
                 send_message_eof(client_socket_fd);
                 continue;
@@ -306,7 +305,7 @@ int exec_client_requests(int client_socket_fd) {
                     free(receive_buffer);
                     return OK_EXIT;
                 case BI_CMD_CD:
-                    chdir(first_cmd.argv[1]);
+                    return_code = chdir(first_cmd.argv[1]);
                     send_message_eof(client_socket_fd);
                     break;
                 default:
@@ -315,7 +314,7 @@ int exec_client_requests(int client_socket_fd) {
                 }
             }else{
                 // Pipeline
-                rc = rsh_start_supervisor_and_execute_pipeline(client_socket_fd, &command_list);
+                return_code = rsh_start_supervisor_and_execute_pipeline(client_socket_fd, &command_list);
                 send_message_eof(client_socket_fd);
             }
 
