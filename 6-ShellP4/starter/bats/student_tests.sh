@@ -24,6 +24,28 @@ teardown(){
     stop_server
 }
 
+@test "Local mode works as expected" {
+    u=$(uname)
+    run ./dsh <<EOF       
+uname       
+exit
+EOF
+
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="${u}localmodedsh4>localmodedsh4>dsh4>cmdloopreturned0"
+
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    # Check exact match
+    [ "$stripped_output" = "$expected_output" ]
+
+    # Assertions
+    [ "$status" -eq 0 ]
+}
+
 @test "Client can connect to server" {
     run ./dsh -c <<EOF              
 exit
