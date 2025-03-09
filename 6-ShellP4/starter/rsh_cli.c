@@ -142,9 +142,17 @@ int exec_remote_cmd_loop(char *address, int port)
                 is_end_of_stream = BUFFER_END_IS_CHAR(receive_buffer, bytes_read, RDSH_EOF_CHAR);
                 if (is_end_of_stream) {
                     set_last_character_of_buffer(receive_buffer, bytes_read, NULL_BYTE);
+
+                    if(strings_are_equal(receive_buffer, EXIT_CMD)){
+                        return client_cleanup(client_socket_fd, send_buffer, receive_buffer, OK);
+                    }
+                    
                 }
 
-                print_response_from_server(bytes_read, receive_buffer);
+                // Isn't an eof char
+                if(bytes_read != 1){
+                    print_response_from_server(bytes_read, receive_buffer);
+                }
 
                 if (is_end_of_stream)
                     break;
@@ -234,5 +242,5 @@ int client_cleanup(int cli_socket, char *cmd_buff, char *rsp_buff, int rc){
 }
 
 void print_response_from_server(ssize_t bytes_read, char receive_buffer[]){
-    printf("%.*s\n", (int)bytes_read, receive_buffer);
+    printf("%.*s", (int)bytes_read, receive_buffer);
 }

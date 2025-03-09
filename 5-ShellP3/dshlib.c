@@ -98,7 +98,7 @@ int exec_local_cmd_loop()
         cmd_buff_t first_cmd = command_list.commands[0];
         Built_In_Cmds bi_type = match_command(first_cmd.argv[0]);
 
-        if(clist_has_no_io_redirection_and_built_in(bi_type, &command_list)){
+        if(clist_has_no_pipe_redirection_and_built_in(bi_type, &command_list)){
             cmd_rc = exec_built_in_cmd(&first_cmd, bi_type, cmd_rc);
             
             // Clean-up and exit loop
@@ -269,7 +269,7 @@ int execute_pipeline(command_list_t *clist) {
 Returns:
     0 if clist is not of size 1, and bi_rc does not match to a Built_In_Cmds enum, 1 otherwise
 */
-Built_In_Cmds clist_has_no_io_redirection_and_built_in(Built_In_Cmds bi_rc, command_list_t * clist){
+Built_In_Cmds clist_has_no_pipe_redirection_and_built_in(Built_In_Cmds bi_rc, command_list_t * clist){
     return bi_rc != BI_NOT_BI && clist->num == 1;
 }
 

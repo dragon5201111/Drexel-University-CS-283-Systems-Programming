@@ -82,7 +82,7 @@ typedef enum {
 Built_In_Cmds match_command(const char *input); 
 Built_In_Cmds exec_built_in_cmd(cmd_buff_t *cmd, Built_In_Cmds bi_type, int rc);
 Built_In_Cmds exec_cd(cmd_buff_t * cmd);
-Built_In_Cmds clist_has_no_io_redirection_and_built_in(Built_In_Cmds bi_rc, command_list_t * command_list);
+Built_In_Cmds clist_has_no_pipe_redirection_and_built_in(Built_In_Cmds bi_rc, command_list_t * command_list);
 
 //main execution context
 int exec_local_cmd_loop();

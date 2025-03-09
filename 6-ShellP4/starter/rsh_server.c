@@ -8,6 +8,10 @@
 #include <unistd.h>
 #include <sys/un.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <sys/prctl.h>
+#include <signal.h>
+
 
 //INCLUDES for extra credit
 //#include <signal.h>
@@ -258,7 +262,10 @@ int exec_client_requests(int client_socket_fd) {
     }
 
     ssize_t bytes_read;
+    command_list_t command_list;
+
     int is_end_of_stream;
+    int rc;
 
     while ((bytes_read = recv(client_socket_fd, receive_buffer, RDSH_COMM_BUFF_SZ, 0)) > 0){
         if(bytes_read < 0)
@@ -276,7 +283,43 @@ int exec_client_requests(int client_socket_fd) {
         if(is_end_of_stream){
             // TODO: Implement built-ins, format buffer, etc.
             // Temporary echo
-            send_message_string(client_socket_fd, receive_buffer);
+            rc = build_cmd_list(receive_buffer, &command_list, NULL_BYTE);
+            if(rc != OK){
+                // Indicate error
+                send_message_eof(client_socket_fd);
+                continue;
+            }
+
+            cmd_buff_t first_cmd = command_list.commands[0];
+            Built_In_Cmds bi_type = rsh_match_command(first_cmd.argv[0]);
+            
+            if(clist_has_no_pipe_redirection_and_built_in(bi_type, &command_list)){
+                switch (bi_type)
+                {
+                case BI_CMD_EXIT:
+                    send_message_string(client_socket_fd, EXIT_CMD);
+                    free_cmd_list(&command_list);
+                    break;
+                case BI_CMD_STOP_SVR:
+                    send_message_string(client_socket_fd, EXIT_CMD);
+                    free_cmd_list(&command_list);
+                    free(receive_buffer);
+                    return OK_EXIT;
+                case BI_CMD_CD:
+                    chdir(first_cmd.argv[1]);
+                    send_message_eof(client_socket_fd);
+                    break;
+                default:
+                    send_message_eof(client_socket_fd);
+                    break;
+                }
+            }else{
+                // Pipeline
+                rc = rsh_start_supervisor_and_execute_pipeline(client_socket_fd, &command_list);
+                send_message_eof(client_socket_fd);
+            }
+
+            free_cmd_list(&command_list);
         }
     } 
 
@@ -376,8 +419,129 @@ int send_message_string(int cli_socket, char *buff){
  *                  macro that we discussed during our fork/exec lecture to
  *                  get this value. 
  */
-int rsh_execute_pipeline(int cli_sock, command_list_t *clist) {
-    return WARN_RDSH_NOT_IMPL;
+int rsh_execute_pipeline(int client_socket_fd, command_list_t *clist) {
+    int num_commands = clist->num;
+    int pipes[num_commands - 1][2];  // Array of pipes
+    pid_t pids[num_commands];        // Array to store process IDs
+
+    // Create all necessary pipes
+    for (int i = 0; i < num_commands - 1; i++) {
+        if (pipe(pipes[i]) == -1) {
+            perror("Pipe creation failed");
+            exit(errno);
+        }
+    }
+
+    // Create processes for each command
+    for (int i = 0; i < num_commands; i++) {
+        pids[i] = fork();
+        if (pids[i] == -1) {
+            perror("Forking children of supervisor failed");
+            exit(errno);
+        }
+
+        if (pids[i] == 0) {  // Child process
+            // Kill child if parent dies
+            prctl(PR_SET_PDEATHSIG, SIGKILL);
+            cmd_buff_t cmd_to_exec = clist->commands[i];
+
+            if(i == 0){
+                dup2(client_socket_fd, STDIN_FILENO);
+            }
+
+            if(i == num_commands - 1){
+                dup2(client_socket_fd, STDOUT_FILENO);
+                dup2(client_socket_fd, STDERR_FILENO);
+            }
+
+            if (cmd_to_exec.input_file != NULL) {
+                int in_fd = open(cmd_to_exec.input_file, O_RDONLY);
+                if (in_fd == -1) {
+                    exit(errno);
+                }
+                dup2(in_fd, STDIN_FILENO);
+                close(in_fd);
+            }
+
+            if (cmd_to_exec.output_file != NULL) {
+                int out_fd;
+                if(cmd_to_exec.append_mode){
+                    out_fd = open(cmd_to_exec.output_file, O_WRONLY | O_APPEND | O_CREAT, 0644);
+                }else{
+                    out_fd = open(cmd_to_exec.output_file, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+                }
+                if (out_fd == -1) {
+                    exit(errno);
+                }
+                dup2(out_fd, STDOUT_FILENO);
+                close(out_fd);
+            }
+
+
+            // Set up input pipe for all except first process
+            if (i > 0) {
+
+                dup2(pipes[i-1][0], STDIN_FILENO);
+            }
+
+            if (i < num_commands - 1) {
+                dup2(pipes[i][1], STDOUT_FILENO);
+            }
+
+
+            for (int j = 0; j < num_commands - 1; j++) {
+                close(pipes[j][0]);
+                close(pipes[j][1]);
+            }
+
+           
+            execvp(cmd_to_exec.argv[0], cmd_to_exec.argv);
+            exit(errno);
+        }
+    }
+
+    // Parent process: close all pipe ends
+    for (int i = 0; i < num_commands - 1; i++) {
+        close(pipes[i][0]);
+        close(pipes[i][1]);
+    }
+
+    int pipeline_rc = OK;
+
+    for (int i = 0; i < num_commands; i++) {
+        waitpid(pids[i], &pipeline_rc, 0);
+        if (WIFEXITED(pipeline_rc)) {
+            pipeline_rc = WEXITSTATUS(pipeline_rc);  // Save last child's exit status
+        }
+    }
+
+    exit(pipeline_rc);
+}
+
+
+int rsh_start_supervisor_and_execute_pipeline(int client_socket_fd, command_list_t *clist) {
+    pid_t supervisor = fork();
+    int supervisor_rc;
+
+    if (supervisor == -1) {
+        perror("Fork supervisor creation failed");
+        exit(errno);
+    }
+
+    if (supervisor == 0) {
+        // Kill children if parent dies
+        prctl(PR_SET_PDEATHSIG, SIGKILL);
+
+        int pipe_line_rc = rsh_execute_pipeline(client_socket_fd, clist);
+        exit(pipe_line_rc);
+    }
+
+    waitpid(supervisor, &supervisor_rc, 0);
+    if (WIFEXITED(supervisor_rc)) {
+        return WEXITSTATUS(supervisor_rc);
+    } else {
+        return errno;
+    }
 }
 
 /**************   OPTIONAL STUFF  ***************/
@@ -415,7 +579,18 @@ int rsh_execute_pipeline(int cli_sock, command_list_t *clist) {
  */
 Built_In_Cmds rsh_match_command(const char *input)
 {
-    return BI_NOT_IMPLEMENTED;
+    if(strings_are_equal(input, EXIT_CMD)){
+        return BI_CMD_EXIT;
+    }else if(strings_are_equal(input, DRAGON_CMD)){
+        return BI_CMD_DRAGON;
+    }else if(strings_are_equal(input, CD_CMD)){
+        return BI_CMD_CD;
+    }else if(strings_are_equal(input, RC_CMD)){
+        return BI_CMD_RC;
+    }else if(strings_are_equal(input, EXIT_CMD_SERVER)){
+        return BI_CMD_STOP_SVR;
+    }
+    return BI_NOT_BI;
 }
 
 /*
@@ -450,7 +625,7 @@ Built_In_Cmds rsh_match_command(const char *input)
  *   AGAIN - THIS IS TOTALLY OPTIONAL IF YOU HAVE OR WANT TO HANDLE BUILT-IN
  *   COMMANDS DIFFERENTLY. 
  */
-Built_In_Cmds rsh_built_in_cmd(cmd_buff_t *cmd)
+Built_In_Cmds rsh_exec_built_in_cmd(Built_In_Cmds bi_type)
 {
-    return BI_NOT_IMPLEMENTED;
+    return bi_type;
 }
