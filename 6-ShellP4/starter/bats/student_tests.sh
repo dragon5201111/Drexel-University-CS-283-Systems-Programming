@@ -66,6 +66,26 @@ EOF
     [ "$status" -eq 0 ]
 }
 
+@test "Client can close connection to server" {
+    run ./dsh -c <<EOF              
+exit
+EOF
+
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="socketclientmode:addr:127.0.0.1:4545dsh4>cmdloopreturned0"
+
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    # Check exact match
+    [ "$stripped_output" = "$expected_output" ]
+
+    # Assertions
+    [ "$status" -eq 0 ]
+}
+
 @test "Client can send a command to the server" {
     res=$(ls)
     run ./dsh -c <<EOF     
@@ -258,6 +278,57 @@ EOF
     # Expected output with all whitespace removed for easier matching
     expected_output="socketclientmode:addr:127.0.0.1:4545dsh4>dsh4>${cat_test}dsh4>cmdloopreturned0"
     rm -rf test
+    # These echo commands will help with debugging and will only print
+    #if the test fails
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    # Check exact match
+    [ "$stripped_output" = "$expected_output" ]
+
+    # Assertions
+    [ "$status" -eq 0 ]
+}
+
+@test "Client Multi-Redirection works" {
+    run ./dsh -c <<EOF
+wc < dragon.c > test
+cat test
+exit
+EOF
+    test=$(cat test)
+    test=$(echo "$test" | tr -d '[:space:]')
+
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+    expected_output="socketclientmode:addr:127.0.0.1:4545dsh4>dsh4>${test}dsh4>cmdloopreturned0"
+    rm -rf test
+    echo "Captured stdout:" 
+    echo "Output: $output"
+    echo "Exit Status: $status"
+    echo "${stripped_output} -> ${expected_output}"
+
+    [ "$stripped_output" = "$expected_output" ]
+
+    [ "$status" -eq 0 ]
+}
+
+@test "Client redirection with pipes" {
+    res=$(cat < dragon.c | wc -l)
+    run ./dsh -c <<EOF
+cat < dragon.c | wc -l
+exit
+EOF
+
+    # Strip all whitespace (spaces, tabs, newlines) from the output
+    stripped_output=$(echo "$output" | tr -d '[:space:]')
+    res=$(echo "$res" | tr -d '[:space:]')
+
+
+    # Expected output with all whitespace removed for easier matching
+    expected_output="socketclientmode:addr:127.0.0.1:4545dsh4>${res}dsh4>cmdloopreturned0"
+
     # These echo commands will help with debugging and will only print
     #if the test fails
     echo "Captured stdout:" 
