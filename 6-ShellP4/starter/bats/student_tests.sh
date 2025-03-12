@@ -433,6 +433,28 @@ EOF
 
 }
 
+@test "Multi-threading works" {
+    stop_server
+    run ./dsh -x -s &
+    server=$!
+    # First client connection
+    run ./dsh -c << EOF
+    exit
+EOF
+    out_one=$output
+
+    run ./dsh -c << EOF
+    exit
+EOF
+    out_two=$output
+    out_one=$(echo "$out_one" | tr -d '[:space:]')
+    out_two=$(echo "$out_two" | tr -d '[:space:]')
+
+    echo "${out_one} -> ${out_two}"
+
+    [ "$out_one" == "$out_two" ]
+}
+
 
 
 

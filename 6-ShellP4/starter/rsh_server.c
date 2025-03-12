@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <sys/prctl.h>
 #include <signal.h>
+#include <pthread.h>
 
 
 //INCLUDES for extra credit
@@ -66,7 +67,11 @@ int start_server(char *ifaces, int port, int is_threaded){
         return err_code;
     }
 
-    rc = process_cli_requests(svr_socket);
+    if(is_threaded){
+        rc = process_cli_requests_threaded(svr_socket);
+    }else{
+        rc = process_cli_requests(svr_socket);
+    }
 
     stop_server(svr_socket);
 
@@ -143,6 +148,43 @@ int boot_server(char *ifaces, int port){
     return server_socket_fd;
 }
 
+void *handle_client(void *client_socket_ptr) {
+    int client_socket = *(int *)client_socket_ptr; 
+
+    int exec_client_requests_rc;
+    exec_client_requests_rc = exec_client_requests(client_socket);
+
+    if (exec_client_requests_rc == ERR_RDSH_COMMUNICATION) {
+        close(client_socket);
+    } else if (exec_client_requests_rc == OK) {
+        printf(RCMD_MSG_CLIENT_EXITED);
+        close(client_socket);
+    } else if (exec_client_requests_rc == OK_EXIT) {
+        printf(RCMD_MSG_SVR_STOP_REQ);
+        close(client_socket);
+    }
+
+    return NULL;
+}
+
+int process_cli_requests_threaded(int server_socket) {
+    int client_socket_fd;
+    pthread_t client_thread_id;
+
+    while (1) {
+        if ((client_socket_fd = accept(server_socket, NULL, NULL)) == -1) {
+            return ERR_RDSH_COMMUNICATION;
+        }
+
+        
+        if(pthread_create(&client_thread_id, NULL, handle_client, (void *)&client_socket_fd) < 0) {
+            close(client_socket_fd);
+            return ERR_RDSH_COMMUNICATION;
+        }
+    }
+
+    return OK_EXIT;
+}
 
 /*
  * process_cli_requests(svr_socket)
